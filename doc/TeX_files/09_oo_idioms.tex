@@ -1,0 +1,214 @@
+%!TEX encoding = UTF-8 Unicode
+\chapter{Object Oriented Idioms in C}
+John Sadler
+10 Aug 98
+\section{Review of Key OO Characteristics}
+\subsection{Object}
+\textbf{"A package of information and descriptions of its manipulation"
+[Robson]}
+
+Objects separate interface from implementation, "what" is wanted (on
+the outside) from "how" it is accomplished (on the inside). This idea
+of hiding the data inside a package with a fixed set of allowed
+manipulations is called encapsulation. Why? If the object always selects
+how to perform a requested manipulation, you guarantee that the
+procedure and the data it operates on always match.
+
+A \textbf{message} denotes an operation that can be performed on an
+\textbf{object}. The code that describes how to perform an operation on
+a specific object type is called a \textbf{method}. From the outside,
+objects receive messages. On the inside, these messages are mapped to
+methods that perform appropriate actions for the specific kind of object.
+An object’s \textbf{interface} is the set of messages to which it can
+respond. For example, several object types may have a "dump" method to
+cause the object to display its state. Each kind of object will need a
+unique method to accomplish this. So the message-method idea separates
+the interface from the implementation. The idea that different kinds of
+objects might invoke different methods to respond to the same message is
+called \textbf{polymorphism}. Methods can be bound to messages as soon
+as the type of the object receiving the message is known (called
+\textbf{early binding}), or this mapping can wait until run-time
+(\textbf{late binding}).
+
+Some languages (notably C++) make a syntactic distinction between early
+and late binding of methods to messages (virtual functions are bound
+late, while all others are bound early – at link time). Smalltalk makes
+no such distinction. The C++ approach has potentially dangerous
+consequences when you manipulate an object through a pointer to its
+parent class. If a method of the superclass is virtual, you get late
+binding to the appropriate function for the object’s class. On the other
+hand, if that method is not virtual, you get early binding to the parent
+class’s definition even if the child class has overridden it. Smalltalk
+adheres rigorously to the idea that the object itself has sole ownership
+of the mapping from methods to messages. 
+
+
+\subsection{Class}
+\textbf{"A description of one or more similar objects" [Robson]}
+
+A specific object described by a particular class is called an
+\textbf{instance} of the class.
+
+(Example: Dog is a class; Poodle is a subclass of Dog; FiFi is an
+object, an instance of Poodle).
+
+A class is a kind of object that describes the behaviors (methods) of
+its instances, and whose methods provide for creation, initialization,
+and destruction of an instance. All instances of a particular class use
+the same method to respond to a given message. Classes may define other
+members that are shared by all instances of the class. These are called
+class variables. (In C++, these would be static members.) 
+
+
+\subsection{Inheritance}
+A means for creating a new object or class using an existing one as a
+starting place and defining only what changes. C++ only supports
+class-based inheritance, but some systems also allow objects to inherit
+directly from other objects. At minimum, inheritance requires that the
+child class override its parent’s name. In addition, a child class can:
+\begin{itemize}[noitemsep]
+	\item add instance variables
+	\item add class variables
+	\item define methods for new messages
+	\item provide methods for (\textbf{override}) messages already
+	handled by the parent class
+\end{itemize}
+
+
+\section{What C++ Does for you…}
+\subsection{Name mangling – separation of name spaces}
+This mechanism – decorating symbol names with extra characters that
+uniquely identify their class and prototype – is the traditional C++
+method for operator overloading, method overloading, and namespace
+separation. C provides a much smaller set of namespaces than C++
+requires, so this strategy allowed C++ to be implemented as a
+preprocessor for C compilers originally.
+
+
+\subsection{Rigorous type checking}
+Because of the function prototype requirement and name mangling, a C++
+compiler can provide strict type checking for method invocations.
+
+
+\subsection{Automatic lifetime control}
+Guarantees constructor call upon creation and destructor call upon
+deletion.
+
+
+\subsection{Multiple Storage classes (same as C)}
+Automatic, static, dynamically allocated
+
+
+\subsection{Typed dynamic memory management}
+
+
+\subsection{Default constructor, destructor, copy constructor, and assignment operator}
+
+
+\subsection{Explicit early and late binding support}
+
+
+\subsection{And more…}
+
+
+\section{What other OO languages do (or don’t do)}
+Just to make sure we don’t get caught in a C++ centered view of the
+world, here are some ways other OO systems differ.
+
+
+\subsection{Run-time type identification}
+This is a Big Deal in C++, but it’s relatively trivial in an interpreted
+language to know the type of a reference at run-time.
+
+
+\subsection{Metaclasses}
+Classes are objects, too (Smalltalk, Java?)
+
+
+\subsection{Garbage collection}
+Java and Smalltalk both manage memory for you, freeing objects when they
+go out of scope or are no longer referenced anywhere.
+
+
+\subsection{Single Inheritance only}
+Java, Smalltalk 80
+
+
+\subsection{Everything is an object}
+Smalltalk
+
+
+\subsection{Operator overloading}
+Smalltalk makes no distinction between operators and other kinds of
+messages. The message syntax is flexible enough that you can define
+operators in the same way as any other kind of message.
+
+
+\subsection{Visibility control}
+Smalltalk 80 does not appear to provide options for visibility control
+(based on my quick survey). Instance variables are always private,
+methods are always public as far as I can tell.
+
+
+\subsection{Pointers}
+Not in Smalltalk, Java: Both languages deal with objects through
+implicit references. It is still possible to create data structures,
+but the language hides much of the memory management work.
+
+
+\subsection{No Casting}
+As far as I can tell, smalltalk has no equivalent of a C/C++ cast.
+
+
+\subsection{Late binding}
+Smalltalk makes no syntactic distinction between late and early bound
+methods (unlike C++ "virtual" methods) 
+
+
+\section{OO-C framework options}
+\begin{itemize}[noitemsep]
+	\item Covered: objects (encapsulation, explicit construct and
+	destruct), classes, inheritance, polymorphism 
+
+	\item Not covered: multiple inheritance, automatic
+	initialization / destruction. 
+\end{itemize}
+
+
+\subsection{Strategy 1: message maps and aggregation}
+Class: a struct with a pointer to a method table (message map).
+Contructor and destuctor are really initializer and destructor, and are
+invoked manually at beginning and end of lifetime.
+
+Messages and methods: mapping table (first cut: use macros like MFC to
+create a mapping between messages and methods). Alternative: message map
+can be built at run-time (hash, tree, linked list) – method resolution
+may be slower.
+
+Inheritance: aggregate the parent struct (recursively) at the beginning
+of the derived one, link the child method table to the parent and search
+recursively to resolve messages to methods
+
+Pros and cons:
++ flexible and minimal manual steps required
++ relatively simple – no need to write a preprocessor!
+- all methods are late bound, run-time penalty defeats compile time type
+checking, may require a single prototype for all methods
+
+
+\subsection{Strategy 2: manual name mangling}
+This is how the Samek article handles encapsulation
+
+
+\subsection{Strategy 3: preprocessor}
+This is how C++ started out.
+
+
+\subsection{References}
+\begin{itemize}[noitemsep]
+	\item David Robson, Object Oriented Software Systems. Byte,
+	August 1981
+
+	\item Miro Samek, Portable Inheritance and Polymorphism in C.
+	Embedded Systems Programming, December 1997
+\end{itemize}

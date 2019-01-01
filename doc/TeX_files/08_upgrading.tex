@@ -1,0 +1,239 @@
+%!TEX encoding = UTF-8 Unicode
+\chapter{Upgrading}
+FICL 4.0 is smaller, faster, and more capable than any previous version.
+For more information on why FICL 4.0 is so gosh-darned swell, see the
+What's New In FICL 4.0? section of the overview.
+
+Since the FICL API has changed so dramatically, you can't just drop the
+new FICL source. You have two basic choices: use the
+FICL\_WANT\_COMPATIBILITY support, and switching to the new API.
+
+Note that using either of these choices requires that you recompile your
+application. You cannot build FICL 4 into a shared library or DLL and
+use it with an application expecting FICL 3.0. Stated another way: FICL
+4 is source compatible but not binary compatible with FICL 3.
+
+
+\section{Using FICL\textunderscore WANT\textunderscore COMPATIBILITY}
+If you want to get FICL 4.0 up and running in your project as quickly
+as possible, FICL\_WANT\_COMPATIBILITY is what you'll want to use.
+There are two easy steps, one of which you might be able to skip:
+\begin{enumerate}[noitemsep]
+	\item Set the C preprocessor constant FICL\_WANT\_COMPATIBILITY
+	to 1. The best way is by adding the following line to
+	\textit{ficllocal.h}:
+\begin{lstlisting}[frame=single]
+#define FICL\_WANT\_COMPATIBILITY (1)
+\end{lstlisting}
+
+	\item If you use a custom ficlTextOut() function, you'll have to
+	rename it, and explicitly specify it to FICL. Renaming it is
+	necessary, because the FICL compatibility layer also provides
+	one for code that called ficlTextOut() directly (instead of
+	calling vmTextOut() as it should have). We recommend renaming
+	your function to ficlTextOutLocal(), as we have have provided a
+	prototype for this function for you in
+	\textit{ficlcompatibility.h}. This will save you the trouble of
+	defining your own prototype, ensuring you get correct name
+	decoration / linkage, etc.
+
+	There are two methods you can use to specify your ficlTextOut() function:
+	\begin{enumerate}[noitemsep]
+		\item Specify it in the FICL\_INIT\_INFO structure
+		passed in to ficlInitSystem(). This is the preferred
+		method, as it ensures you will see the results of FICL's
+		initialization code, and it will be automatically passed
+		in to every newly created VM.
+
+		\item Set it explicitly in every VM by calling
+		vmSetTextOut() and passing it in.
+	\end{enumerate}
+	\textbf{Note}: Any other method, such as setting it by hand in
+	the FICL\_SYSTEM or FICL\_VM structures, will not work. There
+	is a special compatibility layer for old-style OUTFUNC
+	functions, but it is only invoked properly when you use one of
+	the two methods mentioned above.
+\end{enumerate}
+This should be sufficient for you to recompile-and-go with FICL 4. If
+it's not, please let us know, preferably including a suggested solution
+to the problem.
+
+
+\section{Using The New API}
+Since most (all?) of the external symbols have changed names since the
+3.0 series, here is a quick guide to get you started on renaming
+everything. This is by no means an exhaustive list; this is meant to
+guide you towards figuring out what the new name should be. (After all,
+part of the point of this massive renaming was to make all the external
+symbols consistent.)
+
+
+\subsection{Types}
+Every external type has been renamed. They all begin with the word ficl,
+and they use mixed case (instead of all upper-case, which is now
+reserved for macros). Also, the confusingly-named string objects have
+been renamed: FICL\_STRING is now ficlCountedString, as it represents a
+"counted string" in the language, and the more commonly-used STRINGINFO
+is now simply ficlString.
+
+\begin{tabular}{| l | l |}
+	\hline
+	\textbf{Old name} & \textbf{New name} \\ \hline
+	FICL\_SYSTEM & ficlSystem \\ \hline
+	FICL\_VM & ficlVm \\ \hline
+	FICL\_SYSTEM\_INFO & ficlSystemInformation \\ \hline
+	FICL\_WORD & ficlWord \\ \hline
+	IPTYPE & ficlIp \\ \hline
+	FICL\_CODE & ficlPrimitive \\ \hline
+	OUTFUNC & ficlOutputFunction \\ \hline
+	FICL\_DICTIONARY & ficlDictionary \\ \hline
+	FICL\_STACK & ficlStack \\ \hline
+	STRINGINFO & ficlString \\ \hline
+	FICL\_STRING & ficlCountedString \\
+	\hline
+\end{tabular}
+
+
+\subsection{Structure Members}
+In addition, many structure names have changed. To help ease the
+heartache, we've also added some accessor macros. So, in case they
+change in the future, your code might still compile (hooray!).
+
+\begin{tabular}{| l | l | l |}
+	\hline
+	\textbf{Old name} & \textbf{New name} & \textbf{Accessor} \\ \hline
+	pExtend & context & ficlVmGetContext(), ficlSystemGetContext() \\ \hline
+	pStack & dataStack & ficlVmGetDataStack() \\ \hline
+	fStack & floatStack & ficlVmGetFloatStack() \\ \hline
+	rStack & returnStack & ficlVmGetReturnStack() \\
+	\hline
+\end{tabular}
+
+
+\subsection{Callback Functions}
+Text output callbacks have changed in two major ways:
+\begin{itemize}[noitemsep]
+	\item They no longer take a VM pointer; they now take a
+	ficlCallback structure. This allows output to be printed before
+	a VM is defined, or in circumstances where a VM may not be
+	defined (such as an assertion failure in a ficlSystem...()
+	function).
+
+	\item They no longer take a flag indicating whether or not to
+	add a "newline". Instead, the function must output a newline
+	whenever it encounters a \\n character in the text.
+\end{itemize}
+If you don't want to rewrite your output function yet, you can "thunk"
+the new-style call to the old-style. Just pass in
+ficlOldnamesCallbackTextOut as the name of the output function for the
+system and VM, and then set the thunkedTextout member of the ficlSystem
+or ficlVm to your old-style text output function.
+
+
+\subsection{Renamed Macros}
+\begin{tabular}{| l | l |}
+	\hline
+	\textbf{Old name} & \textbf{New name} \\ \hline
+	PUSHPTR(p) & ficlStackPushPointer(vm-\textgreater dataStack, p) \\ \hline
+	POPUNS() & ficlStackPopUnsigned(vm-\textgreater dataStack) \\ \hline
+	GETTOP() & ficlStackGetTop(vm-\textgreater dataStack) \\ \hline
+	FW\_IMMEDIATE & FICL\_WORD\_IMMEDIATE \\ \hline
+	FW\_COMPILE & FICL\_WORD\_COMPILE\_ONLY \\ \hline
+	VM\_INNEREXIT & FICL\_VM\_STATUS\_INNER\_EXIT \\ \hline
+	VM\_OUTOFTEXT & FICL\_VM\_STATUS\_OUT\_OF\_TEXT \\ \hline
+	VM\_RESTART & FICL\_VM\_RESTART \\
+	\hline
+\end{tabular}
+
+
+\subsection{ficllocal.h}
+One more note about macros. FICL now ships with a standard place for you
+to tweak the FICL compile-time preprocessor switches such as
+FICL\_WANT\_COMPATIBILITY and FICL\_WANT\_FLOAT. It's a file called
+\textit{ficllocal.h}, and we guarantee that it will always ship empty
+(or with only comments). We suggest that you put all your local changes
+there, rather than editing \textit{ficl.h} or editing the Makefile.
+That should make it much easier to integrate future FICL releases into
+your product — all you need do is preserve your tweaked copy of
+\textit{ficllocal.h} and replace the rest.
+
+
+\subsection{Renamed Functions}
+Every function that deals primarily with a particular structure is now
+named after that structure. For instance, any function that takes a
+ficlSystem as its first argument is named ficlSystemSomething(). Any
+function that takes a ficlVm as its first argument is named
+ficlVmSomething(). And so on.
+
+Also, functions that create a new object are always called Create
+(not Alloc, Allot, Init, or New). Functions that create a new object
+are always called Destroy (not Free, Term, or Delete).
+
+\begin{tabular}{| l | l |}
+	\hline
+	\textbf{Old name} & \textbf{New name} \\ \hline
+	ficlInitSystem() & ficlSystemCreate() \\ \hline
+	ficlTermSystem() & ficlSystemDestroy() \\ \hline
+	ficlNewVM() & ficlSystemCreateVm() \\ \hline
+	ficlFreeVM() & ficlVmDestroy() \\ \hline
+	dictCreate() & ficlDictionaryCreate() \\ \hline
+	dictDelete() & ficlDictionaryDestroy() \\ \hline
+\end{tabular}
+All functions exported by FICL now start with the word ficl. This is a
+feature, as it means the FICL project will no longer pollute your
+namespace.
+
+\begin{tabular}{| l | l |}
+	\hline
+	\textbf{Old name} & \textbf{New name} \\ \hline
+	PUSHPTR(p) & ficlStackPushPointer(vm-\textgreater dataStack, p) \\ \hline
+	POPUNS() & ficlStackPopUnsigned(vm-\textgreater dataStack) \\ \hline
+	GETTOP() & ficlStackGetTop(vm-\textgreater dataStack) \\ \hline
+	ltoa() & ficlLtoa() \\ \hline
+	strincmp() & ficlStrincomp() \\ \hline
+\end{tabular}
+
+
+\subsection{Removed Functions}
+A few entry points have simply been removed. For instance, functions
+specifically managing a system's ENVIRONMENT settings have been removed,
+in favor of managing the system's environment dictionary directly:
+
+\begin{tabular}{| l | l |}
+	\hline
+	\textbf{Old name} & \textbf{New name} \\ \hline
+	ficlSystemSetEnvironment(system) & ficlDictionarySetConstant(ficlSystemGetEnvironment(system), ...) \\ \hline
+	ficlSystemSet2Environment(system) & ficlDictionarySet2Constant(ficlSystemGetEnvironment(system), ...) \\ \hline
+\end{tabular}
+In a similar vein, ficlSystemBuild() has been removed in favor of using
+ficlDictionarySetPrimitive() directly:
+
+\begin{tabular}{| l | l |}
+	\hline
+	\textbf{Old name} & \textbf{New name} \\ \hline
+	ficlSystemBuild(system, ...) & ficlDictionarySetPrimitive(ficlSystemGetDictionary(system), ...) \\ \hline
+\end{tabular}
+Finally, there is no exact replacement for ficlExec(). 99\% of the code
+that called ficlExec() never bothered to manage SOURCE-ID properly. If
+you were calling ficlExec(), and you weren't changing SOURCE-ID
+(or vm-\textgreater sourceId) to match, you should replace those calls
+with ficlVmEvaluate(), which will manage SOURCE-ID for you.
+
+There is a function that takes the place of ficlExec() which doesn't
+change SOURCE-ID: ficlVmExecuteString(). However, instead of taking a
+straight C string (a char *), it takes a ficlString * as its code
+argument. (This is to discourage its use.)
+
+
+\section{Internal Changes}
+\textbf{Note}: none of these changes should affect you. If they do,
+there's probably a problem somewhere. Either FICL's API doesn't abstract
+away something enough, or you are approaching a problem the wrong way.
+Food for thought.
+
+There's only one internal change worth noting here. The top value on a
+FICL stack used to be at (to use the modern structure names)
+stack-\textgreater top[-1]. It is now at stack-\textgreater top[0]. In
+other words, the "stack top" pointer used to point past the top element;
+it now points at the top element. (Pointing at the top element is not
+only less confusing, it is also faster.)

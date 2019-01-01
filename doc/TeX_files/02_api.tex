@@ -1,0 +1,175 @@
+%!TEX encoding = UTF-8 Unicode
+\chapter{API}
+\section{Quick FICL Programming Concepts Overview}
+A FICL dictionary is equivalent to the FORTH "dictionary"; it is where
+words are stored. A single dictionary has a single HERE pointer.
+
+A FICL system information structure is used to change default values
+used in initializing a FICL system.
+
+A FICL system contains a single dictionary, and one or more virtual
+machines.
+
+A FICL stack is equivalent to a FORTH "stack". FICL has three stacks:
+\begin{itemize}[noitemsep]
+	\item The data stack, where integer arguments are stored.
+	\item The return stack, where locals and return addresses for
+		subroutine returns are stored.
+	\item The float stack, where floating-point arguments are
+		stored. (This stack is only enabled when
+		FICL\_WANT\_FLOAT is nonzero.)
+\end{itemize}
+A FICL virtual machine (or VM) represents a single running instance of
+the FICL interpreter. All virtual machines in a single Ficl system see
+the same dictionary.
+
+
+\section{Quick FICL Programming Tutorial}
+Though FICL's API offers a great deal of flexibility, most programs
+incorporating FICL simply use it as follows:
+\begin{enumerate}[noitemsep]
+	\item Create a single ficlSystem using ficlSystemCreate(NULL).
+	\item Add native functions as necessary with
+		ficlDictionarySetPrimitive().
+	\item Add constants as necessary with
+		ficlDictionarySetConstant().
+	\item Create one (or more) virtual machine(s) with
+		ficlSystemCreateVm().
+	\item Add one or more scripted functions with ficlVmEvaluate().
+	\item Execute code in a Ficl virtual machine, usually with
+		ficlVmEvaluate(), but perhaps with ficlVmExecuteXT().
+	\item At shutdown, call ficlSystemDestroy() on the single FICL
+		system.
+\end{enumerate}
+
+
+\section{FICL Application Programming Interface}
+The following is a partial listing of functions that interface your
+system or program to FICL. For a complete listing, see ficl.h (which is
+heavily commented). For a simple example, see main.c.
+
+Note that as of Ficl 4, the API is internally consistent. Every external
+entry point starts with the word \textit{ficl}, and the word after that
+also corresponds with the first argument. For instance, a word that
+operates on a ficlSystem* will be called ficlSystemSomething().
+\begin{itemize}[noitemsep]
+	\item void ficlSystemInformationInitialize(ficlSystemInformation
+		*fsi)\newline
+	Resets a ficlSystemInformation structure to all zeros. (Actually
+	implemented as a macro.) Use this to initialize a
+	ficlSystemInformation structure before initializing its members
+	and passing it into ficlSystemCreate() (below).
+
+	\item ficlSystem *ficlSystemCreate(ficlSystemInformation
+		*fsi)\newline
+	Initializes FICL's shared system data structures, and creates
+	the dictionary allocating the specified number of cells from the
+	heap (by a call to ficlMalloc()). If you pass in a NULL pointer,
+	you will recieve a ficlSystem using the default sizes for the
+	dictionary and stacks.
+
+	\item void ficlSystemDestroy(ficlSystem *system)\newline
+	Reclaims memory allocated for the Ficl system including all
+	dictionaries and all virtual machines created by
+	ficlSystemCreateVm(). Note that this will not automatically free
+	the memory allocated by the FORTH memory allocation words
+	(ALLOCATE and RESIZE).
+
+	\item ficlWord *ficlDictionarySetPrimitive(ficlDictionary
+		*dictionary, char *name, ficlCode code, ficlUnsigned8
+		flags)\newline
+	Adds a new word to the dictionary with the given name, code
+	pointer, and flags.
+
+	The flags parameter is a bitfield. The valid flags are:
+	\begin{itemize}[noitemsep]
+		\item FICL\_WORD\_IMMEDIATE
+		\item FICL\_WORD\_COMPILE\_ONLY
+		\item FICL\_WORD\_SMUDGED
+		\item FICL\_WORD\_OBJECT
+		\item FICL\_WORD\_INSTRUCTION
+	\end{itemize}
+	For more information on these flags, see \textit{ficl.h}.
+
+	\item int ficlVmEvaluate(ficlVm *vm, char *text)\newline
+	Pass the specified C string (zero-terminated) to the given
+	virtual machine for evaluation. Returns various exception codes
+	(VM\_XXXX in ficl.h) to indicate the reason for returning.
+	Normal exit condition is VM\_OUTOFTEXT, indicating that the VM
+	consumed the string successfully and is back for more. Calls to
+	ficlVmEvaluate() can be nested, and the function itself is
+	re-entrant, but note that a VM is static, so you have to take
+	reasonable precautions (for example, use one VM per thread in a
+	multithreaded system if you want multiple threads to be able to
+	execute commands).
+
+	\item int ficlVmExecuteXT(ficlVm *vm, ficlWord *pFW)\newline
+	Same as ficlExec, but takes a pointer to a ficlWord instead of
+	a string. Executes the word and returns after it has finished.
+	If executing the word results in an exception, this function
+	will re-throw the same code if it is nested under another
+	ficlExec family function, or return the exception code directly
+	if not. This function is useful if you need to execute the same
+	word repeatedly — you save the dictionary search and outer
+	interpreter overhead.
+
+	\item void ficlFreeVM(ficlVm *vm)\newline
+	Removes the VM in question from the system VM list and deletes
+	the memory allocated to it. This is an optional call, since
+	ficlTermSystem will do this cleanup for you. This function is
+	handy if you're going to do a lot of dynamic creation of VMs.
+
+	\item ficlVm *ficlNewVM(ficlSystem *system)\newline
+	Create, initialize, and return a VM from the heap using
+	ficlMalloc. Links the VM into the system VM list for later
+	reclamation by ficlTermSystem.
+
+	\item ficlWord *ficlSystemLookup(ficlSystem *system, char
+		*name)\newline
+	Returns the address of the specified word in the main
+	dictionary. If no such word is found, it returns NULL. The
+	address is also a valid execution token, and can be used in a
+	call to ficlVmExecuteXT().
+
+	\item ficlDictionary *ficlSystemGetDictionary(ficlSystem
+		*system)\newline ficlDictionary
+		*ficlVmGetDictionary(ficlVm *system)\newline
+	Returns a pointer to the main system dictionary.
+
+	\item ficlDictionary *ficlSystemGetEnvironment(ficlSystem
+		*system)\newline
+	Returns a pointer to the environment dictionary. This dictionary
+	stores information that describes this implementation as
+	required by the Standard.
+
+	\item ficlDictionary *ficlSystemGetLocals(ficlSystem
+		*system)\newline
+	Returns a pointer to the locals dictionary. This function is
+	defined only if FICL\_WANT\_LOCALS is non-zero (see
+	\textit{ficl.h}). The locals dictionary is the symbol table for
+	local variables.
+\end{itemize}
+
+\section{FICL Compile-Time Constants}
+There are a lot of preprocessor constants you can set at compile-time
+to modify FICL's runtime behavior. Some are required, such as telling
+FICL whether or not the local platform supports double-width integers
+(FICL\_PLATFORM\_HAS\_2INTEGER); some are optional, such as telling FICL
+whether or not to use the extended set of "prefixes"
+(FICL\_WANT\_EXTENDED\_PREFIXES).
+
+The best way to find out more about these constants is to read
+\textit{ficl.h} yourself. The settings that turn on or off FICL modules
+are all starting with FICL\_WANT. The settings related to functionality
+available on the current platform are all starting with FICL\_PLATFORM.
+
+
+\section{ficllocal.h}
+One more note about constants. FICL now ships with a standard place for
+you to tweak the FICL compile-time preprocessor constants. It's a file
+called \textit{ficllocal.h}, and we guarantee that it will always ship
+empty (or with only comments). We suggest that you put all your local
+changes there, rather than editing \textit{ficl.h} or editing the
+Makefile. That should make it much easier to integrate future FICL
+releases into your product — all you need do is preserve your tweaked
+copy of \textit{ficllocal.h} and replace the rest.

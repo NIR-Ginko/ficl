@@ -1,0 +1,1013 @@
+%!TEX encoding = UTF-8 Unicode
+\chapter{FICL OOP}
+\section{ICL Object Oriented Programming}
+FICL's object extensions provide the traditional OO benefits of
+associating data with the code that manipulates it, and reuse through
+single inheritance. FICL also has some unusual capabilities that support
+interoperation with systems written in C.
+
+Some design points of FICL's OOP system:
+\begin{itemize}[noitemsep]
+	\item FICL objects are normally late bound for safety (late
+	binding guarantees that the appropriate method will always be
+	invoked for a particular object). Early binding is also
+	available, provided you know the object's class at compile-time.
+
+	\item FICL OOP supports single inheritance, aggregation, and
+	arrays of objects.
+
+	\item Classes have independent name spaces for their methods:
+	methods are only visible in the context of a class or object.
+	Methods can be overridden or added in subclasses; there is no
+	fixed limit on the number of methods of a class or subclass.
+
+	\item FICL OOP syntax is regular and unified over classes and
+	objects. In FICL, all classes are objects. Class methods include
+	the ability to subclass and instantiate.
+
+	\item FICL can adapt legacy data structures with object
+	wrappers. You can model a structure in a FICL class, and create
+	an instance that refers to an address in memory that holds an
+	instance of the structure. The ref object can then manipulate
+	the structure directly. This lets you wrap data structures
+	written and instantiated in C.
+\end{itemize}
+
+
+\section{Acknowledgements}
+FICL is not the first FORTH to include Object Oriented extensions.
+FICL's OO syntax owes a debt to the work of John Hayes and Dick
+Pountain, among others. OO FICL is different from other OO FORTHs in a
+few ways, though (some things never change). First, unlike several
+implementations, the syntax is documented (below) beyond the source
+code. In FICL's spirit of working with C code, the OO syntax provides
+means to adapt existing data structures. I've tried to make FICL's OO
+model simple and safe by unifying classes and objects, providing late
+binding by default, and separating namespaces so that methods and
+regular FORTH words are not easily confused.
+
+
+\section{FICL Object Model}
+All classes in FICL are derived from the common base class OBJECT as
+shown in the figure below. All classes are instances of METACLASS. This
+means that classes are objects, too. METACLASS implements the methods
+for messages sent to classes. Class methods create instances and
+subclasses, and give information about the class. Each class is
+represented by a data stucture of three elements:
+\begin{itemize}[noitemsep]
+	\item The address (named .CLASS ) of a parent class, or zero if
+	it's a base class (only OBJECT and METACLASS have this
+	property).
+
+	\item The size (named .SIZE ) in address units of an instance
+	of the class.
+
+	\item A wordlist ID (named .WID ) for the methods of the class.
+\end{itemize}
+In the figure below, METACLASS and OBJECT are real system-supplied
+classes. The others are contrived to illustrate the relationships among
+derived classes, instances, and the two system base classes. The dashed
+line with an arrow at the end indicates that the object/class at the
+arrow end is an instance of the class at the other end. The vertical
+line with a triangle denotes inheritance.
+
+Note for the curious: METACLASS behaves like a class — it responds to
+class messages and has the same properties as any other class. If you
+want to twist your brain in knots, you can think of METACLASS as an
+instance of itself.
+
+
+\section{FICL Object-Oriented Syntax Tutorial}
+It's helpful to have some familiarity with FORTH and the customary
+FORTH stack notation to understand this tutorial. If you're comfortable
+with both OO and FORTH, you can jump ahead.
+
+A FICL object associates a class with an instance (the storage for one
+set of instance variables). This is done explicitly on FICL's stack, in
+a way that any FICL object is represented by a cell pair:
+\begin{lstlisting}[frame=single]
+( INSTANCE-address CLASS-address )
+\end{lstlisting}
+The INSTANCE-address is the address of the object's storage, and the
+CLASS-address is the address of its class. Whenever a named FICL object
+executes (e.g. when you type its name and press enter at the FICL
+prompt), it leaves this "signature". All methods by convention expect a
+class and instance on the stack when they execute, too. In many other
+OO languages, including C++, instances contain information about their
+classes (a vtable pointer, for example). By making this pairing
+explicit rather than implicit, FICL can be OO about chunks of data that
+don't realize that they are objects, without sacrificing any robustness
+for native objects. That means that you can use FICL to write object
+wrappers for data structures created in C or assembly language, as long
+as you can determine how they're laid out in memory.
+
+Whenever you create an object in FICL, you specify its class. After
+that, the object always pushes its class and the address of its payload
+(instance variable space) when invoked by name.
+
+Classes are special kinds of objects that store the methods of their
+instances, the size of an instance's payload, and a parent class pointer.
+Classes themselves are instances of a special base class called
+METACLASS, and all classes inherit from class OBJECT. This is confusing
+at first, but it means that Ficl has a very simple syntax for
+constructing and using objects. Class methods include subclassing (SUB),
+creating initialized and uninitialized instances (NEW and INSTANCE), and
+creating reference instances (REF), described later. Classes also have
+methods for disassembling their methods (SEE), identifying themselves
+(ID), and listing their pedigree (PEDIGREE). All objects inherit (from
+OBJECT) methods for initializing instances and arrays of instances, for
+performing array operations, and for getting information about
+themselves.
+
+
+\section{Methods And Messages}
+Methods are the functions that objects execute in response to messages.
+A message is a request to an object for a behavior that the object
+supports. When it receives a message, the target object looks up a
+method that performs the behavior for its class, and executes it. Any
+specific message may be bound to different methods in different objects,
+according to class. This separation of messages and methods allows
+objects to behave polymorphically. (In FICL, methods are words defined
+in the context of a class, and messages are the names of those words.)
+FICL classes associate messages with methods for their instances (a
+fancy way of saying that each class owns a wordlist). FICL provides a
+late-binding operator --\textgreater  that sends messages to objects at
+run-time, and an early-binding operator =\textgreater  that compiles a
+specific class's method. These operators are the only supported way to
+invoke methods. Regular FORTH words are not visible to the
+method-binding operators, so there's no chance of confusing a message
+with a regular word of the same name.
+
+
+\section{Tutorial}
+This is a tutorial. It works best if you follow along by pasting the
+examples into ficl. If you're not familiar with FORTH, please see one
+of these references. FICL's OOP words are in vocabulary OOP. To put OOP
+in the search order and make it the compilation wordlist, type:
+\begin{lstlisting}[frame=single]
+ONLY
+ALSO OOP DEFINITIONS
+\end{lstlisting}
+\textbf{Note for beginners}: To see the effect of the commands above,
+type ORDER after each line. You can repeat the sequence above if you
+like.
+
+To start, we'll work with the two base classes OBJECT and METACLASS.
+Try this:
+\begin{;stlisting}[frame=single]
+METACLASS -->  METHODS
+\end{lstlisting}
+The line above contains three words. The first is the name of a class,
+so it pushes its signature on the stack. Since all classes are instances
+of METACLASS, METACLASS behaves as if it is an instance of itself (this
+is the only class with this property). It pushes the same address
+twice: once for the class and once for the payload, since they are the
+same. The next word finds a method in the context of a class and
+executes it. In this case, the name of the method is METHODS. Its job
+is to list all the methods that a class knows. What you get when you
+execute this line is a list of all the class methods FICL provides.
+\begin{lstlisting}[frame=single]
+OBJECT -->  SUB C-LED
+\end{lstlisting}
+Causes the base-class OBJECT to derive from itself a new class called
+C-LED. Now we'll add some instance variables and methods to the new
+class.
+
+\textbf{Note}: I like to prefix the names of classes with c- and the
+names of member variables with a period, but this is just a convention.
+If you don't like it, pick your own.
+\begin{lstlisting}[frame=single]
+C-BYTE OBJ: .STATE
+: INIT   { 2:THIS -- }
+THIS --> SUPER --> INIT
+." Initializing an instance of "
+THIS --> CLASS --> ID TYPE CR ;
+: ON   { LED\# 2:THIS -- }
+THIS --> .STATE --> GET
+1 LED# LSHIFT OR DUP !OREG
+THIS --> .STATE --> SET  ;
+: OFF   { LED# 2:THIS -- }
+THIS --> .STATE -->  GET
+1 LED# LSHIFT INVERT AND DUP !OREG
+THIS -->  .STATE -->  SET ;
+END-CLASS
+\end{lstlisting}
+The first line adds an instance variable called .STATE to the class.
+This particular instance variable is an object — it will be an instance
+of C-BYTE, one of FICL's stock classes (the source for which can be
+found in the distribution in \textit{softcore/classes.fr}).
+
+Next we've defined a method called INIT. This line also declares a local
+variable called THIS (the 2 in front tells FICL that this is a
+double-cell local). All methods by convention expect the address of the
+class and instance on top of the stack when called. The next three lines
+define the behavior of INIT when it's called. It first calls its
+superclass's version of INIT (which in this case is
+"OBJECT =\textgreater  INIT" — this default implementation clears all
+instance variables). The rest displays some text and causes the
+instance to print its class name (THIS --\textgreater  CLASS
+--\textgreater  ID).
+
+The INIT\textgreater  method is special for FICL objects: whenever you
+create an initialized instance using NEW or NEW-ARRAY, FICL calls the
+class's INIT method for you on that instance. The default INIT method
+supplied by OBJECT clears the instance, so we didn't really need to
+override it in this case (see the source code in
+\textit{softcore/oo.fr}).
+
+The ON and OFF methods defined above hide the details of turning LEDs
+on and off. The interface to FiclWin's simulated hardware is handled by
+!OREG. The class keeps the LED state in a shadow variable (.STATE) so
+that ON and OFF can work in terms of LED number rather than a bitmask.
+
+Now make an instance of the new class:
+\begin{lstlisting}[frame=single]
+C-LED --> NEW LED
+\end{lstlisting}
+And try a few things...
+\begin{lstlisting}[frame=single]
+LED --> METHODS
+LED --> PEDIGREE
+1 LED --> ON
+1 LED --> OFF
+\end{lstlisting}
+Or you could type this with the same effect:
+\begin{lstlisting}[frame=single]
+LED  2DUP  --> METHODS  --> PEDIGREE
+\end{lstlisting}
+Notice (from the output of METHODS) that we've overridden the INIT
+method supplied by object, and added two more methods for the member
+variables. If you type WORDS, you'll see that these methods are not
+visible outside the context of the class that contains them. The method
+finder --\textgreater uses the class to look up methods. You can use
+this word in a definition, as we did in INIT, and it performs late
+binding, meaning that the mapping from message (method name) to method
+(the code) is deferred until run-time. To see this, you can decompile
+the init method like this:
+\begin{lstlisting}[frame=single]
+C-LED --> SEE INIT
+\end{lstlisting}
+or
+\begin{lstlisting}[frame=single]
+LED --> CLASS --> SEE INIT
+\end{lstlisting}
+
+
+\section{Early Binding}
+FICL also provides early binding if you ask for it. Early binding is not
+as safe as late binding, but it produces code that is more compact and
+efficient because it compiles method addresses rather then their names.
+In the preferred uses of early binding, the class is assumed to be the
+one you're defining. This kind of early binding can only be used inside
+a class definition. Early bound methods still expect to find a class
+and instance cell-pair on top of the stack when they run.
+
+Here's an example that illustrates a potential problem:
+\begin{lstlisting}[frame=single]
+OBJECT --> SUB C1
+: M1   { 2:THIS -- }  ." C1'S M1" CR ;
+: M2   { 2:THIS -- }  ." Running  " THIS  MY=> M1 ; ( early )
+: M3   { 2:THIS -- }  ." Running  " THIS --> M1     ( late )
+END-CLASS
+C1     --> SUB C2
+: M1   { 2:THIS -- }  ." C2'S M1" CR ;
+END-CLASS
+C2 --> NEW I2
+I2 --> M1   ( runs the M1 defined in C2 )
+I2 --> M2   ( Is this what you wanted? )
+I2 --> M3   ( runs the overridden M1)
+\end{lstlisting}
+Even though we overrode method M1 in class C2, the definition of M2
+with early binding forced the use of M1 as defined in C1. If that's what
+you want, great, but more often you'll want the flexibility of
+overriding parent class behaviors appropriately.
+\begin{enumerate}[noitemsep]
+	\item MY=\textgreater  binds early to a method in the class
+	being defined, as in the example above.
+
+	\item MY=[ ] binds a sequence of methods in the current class.
+	Useful when the class has object members. Lines like THIS
+	--\textgreater  STATE --\textgreater  SET in the definition of
+	C-LED above can be replaced with THIS MY=[ STATE SET ] to use
+	early binding.
+
+	\item =\textgreater  (dangerous) pops a class off the stack and
+	compiles the method in that class. Since you have to specify the
+	class explicitly, there is a real danger that this will be out
+	of sync with the class you really wanted. I recommend you use
+	MY=\textgreater or MY=[ ] instead.
+\end{enumerate}
+Early binding using =\textgreater  is dangerous because it partially
+defeats the data-to-code matching mechanism object oriented languages
+were created to provide, but it does increase run-time speed by binding
+the method at compile time. In many cases, such as the INIT method, you
+can be reasonably certain of the class of thing you're working on. This
+is also true when invoking class methods, since all classes are
+instances of METACLASS. Here's an example from the definition of
+METACLASS in \textit{softcore/oo.fr} (don't paste this into ficl — it's
+already there):
+\begin{lstlisting}[frame=single]
+: NEW   \ ( class metaclass "name" -- )
+METACLASS => INSTANCE --> INIT ;
+\end{lstlisting}
+Try this:
+\begin{lstlisting}
+METACLASS --> SEE NEW
+\end{lstlisting}
+Decompiling the method with SEE shows the difference between the two
+strategies. The early bound method is compiled inline, while the
+late-binding operator compiles the method name and code to find and
+execute it in the context of whatever class is supplied on the stack at
+run-time.
+
+Notice that the primitive early-binding operator =\textgreater requires
+a class at compile time. For this reason, classes are IMMEDIATE, meaning
+that they push their signature at compile time or run time. I'd
+recommend that you avoid early binding until you're very comfortable
+with FORTH, object-oriented programming, and FICL's OOP syntax.
+
+
+\section{More About Instance Variables}
+Untyped instance variable methods (created by CELL: CELLS: CHAR: and
+CHARS:) just push the address of the corresponding instance variable
+when invoked on an instance of the class. It's up to you to remember the
+size of the instance variable and manipulate it with the usual FORTH
+words for fetching and storing.
+
+As advertised earlier, FICL provides ways to objectify existing data
+structures without changing them. Instead, you can create a FICL class
+that models the structure, and instantiate a ref from this class,
+supplying the address of the structure. After that, the ref instance
+behaves as a FICL object, but its instance variables take on the values
+in the existing structure. Example (from \textit{softcore/ficlclass.fr}):
+\begin{lstlisting}[frame=single]
+OBJECT SUBCLASS C-WORDLIST
+C-WORDLIST REF: .PARENT
+C-PTR      OBJ: .NAME
+C-CELL     OBJ: .SIZE
+C-WORD     REF: .HASH   ( first entry in hash table )
+
+: ?
+--> GET-NAME ." ficl wordlist "  TYPE CR ;
+: PUSH  DROP > SEARCH ;
+: POP   2DROP PREVIOUS ;
+: SET-CURRENT   DROP SET-CURRENT ;
+: GET-NAME   DROP WID-GET-NAME ;
+: WORDS   { 2:THIS -- }
+THIS MY=[ .SIZE GET ] 0 DO 
+I THIS MY=[ .HASH INDEX ]  ( 2list-head )
+BEGIN
+2DUP --> GET-NAME TYPE SPACE
+--> NEXT OVER
+0= UNTIL 2DROP CR
+LOOP ;
+END-CLASS
+\end{lstlisting}
+In this case, C-WORDLIST describes FICL's wordlist structure; NAMED-WID
+creates a wordlist and binds it to a ref instance of C-WORDLIST. The
+fancy footwork with POSTPONE and early binding is required because
+classes are immediate. An equivalent way to define NAMED-WID with late
+binding is:
+\begin{lstlisting}[frame=single]
+: NAMED-WID   ( c-address u -- )
+  WORDLIST   POSTPONE C-WORDLIST --> REF ;
+\end{lstlisting}
+To do the same thing at run-time (and call it MY-WORDLIST):
+\begin{lstlisting}[frame=single]
+wordlist  c-wordlist --> ref  my-wordlist
+\end{lstlisting}
+Now you can deal with the wordlist through the ref instance:
+\begin{lstlisting}[frame=single]
+MY-WORDLIST --> PUSH
+MY-WORDLIST --> SET-CURRENT
+ORDER
+\end{lstlisting}
+FICL can also model linked lists and other structures that contain
+pointers to structures of the same or different types. The class
+constructor word REF: makes an aggregate reference to a particular
+class. See the instance variable glossary for an example.
+
+FICL can make arrays of instances, and aggregate arrays into class
+descripions. The class methods ARRAY and NEW-ARRAY create uninitialized
+and initialized arrays, respectively, of a class. In order to initialize
+an array, the class must define (or inherit) a reasonable INIT method.
+NEW-ARRAY invokes it on each member of the array in sequence from lowest
+to highest. Array instances and array members use the object methods
+INDEX, NEXT, and PREV to navigate. Aggregate a member array of objects
+using ARRAY:. The objects are not automatically initialized in this
+case — your class initializer has to call ARRAY-INIT explicitly if you
+want this behavior.
+
+For further examples of OOP in FICL, please see the source file
+\textit{softcore/ficlclass.fr}. This file wraps several FICL internal
+data structures in objects and gives use examples.
+
+
+\section{FICL String Classes}
+C-STRING is a reasonably useful dynamic string class. Source code for
+the class is located in \textit{softcore/string.fr}. Features: dynamic
+creation and resizing; deletion, char cout, concatenation, output,
+comparison; creation from quoted string constant (S").
+
+Examples of use:
+\begin{lstlisting}[frame=single]
+C-STRING --> NEW HOMER
+S" In this house, " HOMER --> SET
+S" we obey the laws of thermodynamics!" HOMER --> CAT
+HOMER --\textgreater  TYPE
+\end{lstlisting}
+
+
+\subsection{OOP Glossary}
+\textbf{Note}: With the exception of the binding operators (the first
+two definitions here), all of the words in this section are internal
+factors that you don't need to worry about. These words provide method
+binding for all classes and instances. Also described are supporting
+words and execution factors. All are defined in \textit{softcore/oo.fr}.
+\begin{itemize}[noitemsep]
+	\item --\textgreater  ( instance class "method-name" -- xn
+		)\newline
+	Late binding: looks up and executes the given method in the
+	context of the class on top of the stack.
+
+	\item C-\textgreater  ( instance class "method-name" -- xn
+		exc )\newline
+	Late binding with CATCH: looks up and CATCHes the given method
+	in the context of the class on top of the stack, pushes zero or
+	exception code upon return.
+
+	\item MY=\textgreater  compilation: ( "method-name" -- )
+		execution: ( instance class -- xn )\newline
+	Early binding: compiles code to execute the method of the class
+	being defined. Only visible and valid in the scope of a
+\begin{lstlisting}[frame=single]
+--> SUB .. END-CLASS
+\end{lstlisting}
+		class definition.
+
+	\item MY=[ compilation: ( "obj1 obj2 .. method ]" -- )
+		execution: ( instance class -- xn )\newline
+	Early binding: compiles code to execute a chain of methods of
+	the class being defined. Only visible and valid in the scope
+	of a
+\begin{lstlisting}[frame=single]
+--> SUB .. END-CLASS
+\end{lstlisting}
+	class definition.
+
+	\item =\textgreater compilation: ( class metaclass
+		"method-name" -- ) execution: ( instance class
+		-- xn )\newline
+	Early binding: compiles code to execute the method of the class
+	specified at compile time.
+
+	\item do-do-instance\newline
+	When executed, causes the instance to push its ( INSTANCE CLASS
+	) stack signature. Implementation factor of
+	METACLASS --\textgreater  SUB .
+	Compiles .DO-INSTANCE in the context of a class; .DO-INSTANCE
+	implements the DOES\textgreater  part of a named instance.
+
+	\item exec-method ( instance class c-address u -- xn )\newline
+	Given the address and length of a method name on the stack,
+	finds the method in the context of the specified class and
+	invokes it. Upon entry to the method, the instance and class are
+	on top of the stack, as usual. If unable to find the method,
+	prints an error message and aborts.
+
+	\item find-method-xt ( class "method-name" -- class xt )\newline
+	Attempts to map the message to a method in the specified class.
+	If successful, leaves the class and the execution token of the
+	method on the stack. Otherwise prints an error message and aborts.
+
+	\item lookup-method ( class c-address u -- class xt )\newline
+	Given the address and length of a method name on the stack,
+	finds the method in the context of the specified class. If
+	unable to find the method, prints an error message and aborts.
+
+	\item parse-method compilation: ( "method-name" -- ) execution:
+		( -- c-address u )\newline
+	Parse "method-name" from the input stream and compile code to
+	push its length and address when the enclosing definition runs.
+\end{itemize}
+
+
+\subsection{Instance Variable Glossary}
+\textbf{Note}: These words are only visible when creating a subclass!
+To create a subclass, use the SUB method on OBJECT or any class derived
+from it (not METACLASS). Source code for FICL OOP is in
+\textit{softcore/oo.fr}.
+
+Instance variable words do two things: they create methods that do san
+action appropriate for the type of instance variable they represent, and
+they reserve space in the class template for the instance variable.
+We'll use the term instance variable to refer both to the method that
+gives access to a particular field of an object, and to the field
+itself. Rather than give esentially the same example over and over,
+here's one example that shows several of the instance variable
+construction words in use:
+\begin{lstlisting}[frame=single]
+OBJECT SUBCLASS C-EXAMPLE
+CELL:            .CELL0
+C-4BYTE     OBJ: .NCELLS
+4 C-4BYTE ARRAY: .QUAD
+CHAR:            .LENGTH
+79 CHARS:        .NAME
+END-CLASS
+\end{lstlisting}
+This class only defines instance variables, and it inherits some methods
+from OBJECT. Each untyped instance variable (.CELL0, .LENGTH, .NAME)
+pushes its address when executed. Each object instance variable pushes
+the address and class of the aggregate object. Similar to C, an array
+instance variable leaves its base address (and its class) when executed.
+The word SUBCLASS is shorthand for --\textgreater  sub .
+\begin{itemize}[noitemsep]
+	\item CELL: compilation: ( offset "name" -- offset ) execution:
+		( -- cell-address )\newline
+	Create an untyped instance variable one cell wide. The instance
+	variable leaves its payload's address when executed.
+
+	\item CELLS: compilation: ( offset nCells "name" -- offset' )
+		execution: ( -- cell-address )\newline
+	Create an untyped instance variable nCells cells wide.
+
+	\item CHAR: compilation: ( offset "name" -- offset' )
+		execution: ( -- cell-address )\newline
+	Create an untyped member variable one character wide.
+
+	\item CHARS: compilation: ( offset nChars "name" -- offset' )
+		execution: ( -- cell-address )\newline
+	Create an untyped member variable nChars characters wide.
+
+	\item OBJ: compilation: ( offset class metaclass "name" --
+		offset' ) execution: ( -- instance class )\newline
+	Aggregate an uninitialized instance of CLASS as a member
+	variable of the class under construction.
+
+	\item ARRAY: compilation: ( offset nObjects class metaclass
+		"name" -- offset' ) execution: ( -- instance class )\newline
+	Aggregate an uninitialized array of instances of the class
+	specified as a member variable of the class under construction.
+
+	\item EXAMPLEREF: compilation: ( offset class metaclass
+		"name" -- offset' ) execution: ( -- ref-instance
+		ref-class )\newline
+	Aggregate a reference to a class instance. There is no way to
+	set the value of an aggregated ref — it's meant as a way to
+	manipulate existing data structures with a FICL OO model. For
+	example, if your system contains a linked list of 4 byte
+	quantities, you can make a class that represents a list element
+	like this:
+\begin{lstlisting}[frame=single]
+OBJECT SUBCLASS C-4LIST
+C-4LIST REF: .LINK
+C-4BYTE OBJ: .PAYLOAD
+END-CLASS
+
+ADDRESS-OF-EXISTING-LIST C-4LIST -->  REF MYLIST
+\end{lstlisting}
+	The last line binds the existing structure to an instance of the
+	class we just created. The link method pushes the link value and
+	the class C\_4LIST, so that the link looks like an object to
+	FICL and like a struct to C (it doesn't carry any extra baggage
+	for the object model — the FICL methods alone take care of
+	storing the class information).
+
+	\textbf{Note}: Since a REF: aggregate can only support one class,
+	it's good for modeling static structures, but not appropriate
+	for polymorphism. If you want polymorphism, aggregate a C\_REF
+	(see \textit{softcore/classes.fr} for source) into your class —
+	it has methods to set and get an object.
+
+	By the way, it is also possible to construct a pair of classes
+	that contain aggregate pointers to each other. Here's an example:
+\begin{lstlisting}
+OBJECT SUBCLASS AKBAR
+SUSPEND-CLASS         \ put akbar on hold while we define jeff
+
+OBJECT SUBCLASS JEFF
+AKBAR REF: .SIGNIFICANT-OTHER
+( ... your additional methods here ... )
+END-CLASS               \ done with jeff
+
+AKBAR --> n  RESUME-CLASS  \ resume defining akbar
+JEFF REF: .SIGNIFICANT-OTHER
+( ... your additional methods here ... )
+END-CLASS               \ done with akbar
+\end{lstlisting}
+\end{itemize}
+
+
+\section{Class Methods Glossary}
+These words are methods of METACLASS. They define the manipulations that
+can be performed on classes. Methods include various kinds of
+instantiation, programming tools, and access to member variables of
+classes. Source is in \textit{softcore/oo.fr}.
+\begin{itemize}[noitemsep]
+	\item INSTANCE ( class metaclass "name" -- instance
+		class )\newline
+	Create an uninitialized instance of the class, giving it the
+	name specified. The method leaves the instance's signature on
+	the stack (handy if you want to initialize). Example:
+\begin{lstlisting}[frame=single]
+C\_REF --> INSTANCE UNINIT-REF  2DROP
+\end{lstlisting}
+
+	\item NEW ( class metaclass "name" -- )\newline
+	Create an initialized instance of class, giving it the name
+	specified. This method calls INIT to perform initialization.
+
+	\item ARRAY ( nObjects class metaclass "name" -- nObjects
+		instance class )\newline
+	Create an array of nObjects instances of the specified class.
+	Instances are not initialized. Example:
+\begin{lstlisting}[frame=single]
+10 C\_4BYTE --> ARRAY 40-RAW-BYTES  2DROP DROP
+\end{lstlisting}
+
+	\item NEW-ARRAY ( nObjects class metaclass "name" -- )\newline
+	Creates an initialized array of nObjects instances of the class.
+	Same syntax as ARRAY.
+
+	\item ALLOC ( class metaclass -- instance class )\newline
+	Creates an anonymous instance of CLASS from the heap (using a
+	call to ficlMalloc() to get the memory). Leaves the payload and
+	class addresses on the stack. Usage example:
+\begin{lstlisting}[frame=single]
+C-REF --> ALLOC  2CONSTANT INSTANCE-OF-REF
+\end{lstlisting}
+	Creates a double-cell constant that pushes the payload and class
+	address of a heap instance of C-REF.
+
+	\item ALLOC-ARRAY ( nObjects class metaclass -- instance
+		class )\newline
+	Same as NEW-ARRAY, but creates anonymous instances from the heap
+	using a call to ficlMalloc(). Each instance is initialized using
+	the class's INIT method.
+
+	\item ALLOT ( class metaclass -- instance class )\newline
+	Creates an anonymous instance of CLASS from the dictionary.
+	Leaves the payload and class addresses on the stack. Usage
+	example:
+\begin{lstlisting}[frame=single]
+C-REF --> ALLOT  2CONSTANT INSTANCE-OF-REF
+\end{lstlisting}
+	Creates a double-cell constant that pushes the payload and class
+	address of a heap instance of C-REF.
+
+	\item ALLOT-ARRAY ( nObjects class metaclass -- instance
+		class )\newline
+	Same as NEW-ARRAY, but creates anonymous instances from the
+	dictionary. Each instance is initialized using the class's INIT
+	method.
+
+	\item REF ( instance-address class metaclass "name" -- )\newline
+	Make a ref instance of the class that points to the supplied
+	instance address. No new instance space is allotted. Instead,
+	the instance refers to the address supplied on the stack forever
+	afterward. For wrapping existing structures.
+
+	\item SUB ( class metaclass -- old-wid address[size] size )\newline
+	Derive a subclass. You can add or override methods, and add
+	instance variables. Alias: SUBCLASS. Examples:
+\begin{lstlisting}[frame=single]
+C_4BYTE -->  SUB C_SPECIAL4BYTE
+( ... your new methods and instance variables here ... )
+END-CLASS
+\end{lstlisting}
+	or
+\begin{lstlisting}[frame=single]
+C_4BYTE SUBCLASS C_SPECIAL4BYTE
+( ... your new methods and instance variables here ... )
+END-CLASS
+\end{lstlisting}
+
+	\item .SIZE ( class metaclass -- instance-size )\newline
+	Returns address of the class's instance size field, in address
+	units. This is a metaclass member variable.
+
+	\item .SUPER ( class metaclass -- superclass )\newline
+	Returns address of the class's superclass field. This is a
+	metaclass member variable.
+
+	\item .WID ( class metaclass -- wid )\newline
+	Returns the address of the class's wordlist ID field. This is a
+	metaclass member variable.
+
+	\item GET-SIZE ( -- instance-size )\newline
+	Returns the size of an instance of the class in address units.
+	Imeplemented as follows:
+\begin{lstlisting}[frame=single]
+: GET-SIZE   METACLASS => .SIZE @ ;
+\end{lstlisting}
+
+	\item GET-WID ( -- wid )\newline
+	Returns the wordlist ID of the class. Implemented as:
+\begin{lstlisting}[frame=single]
+: GET-WID   METACLASS => .WID @ ;
+\end{lstlisting}
+
+	\item GET-SUPER ( -- superclass )\newline
+	Returns the class's superclass. Implemented as
+\begin{lstlisting}[frame=single]
+: GET-SUPER   METACLASS => .super @ ;
+\end{lstlisting}
+
+	\item ID ( class metaclass -- c-address u )\newline
+	Returns the address and length of a string that names the class.
+
+	\item METHODS ( class metaclass -- )\newline
+	Lists methods of the class and all its superclasses.
+
+	\item OFFSET-OF ( class metaclass "name" -- offset )\newline
+	Pushes the offset from the instance base address of the named
+	member variable. If the name is not that of an instance variable
+	method, you get garbage. There is presently no way to detect
+	this error. Example:
+\begin{lstlisting}[frame=single]
+metaclass --> offset-of .wid
+\end{lstlisting}
+
+	\item PEDIGREE ( class metaclass -- )\newline
+	Lists the pedigree of the class (inheritance trail).
+
+	\item SEE ( class metaclass "name" -- )\newline
+	Decompiles the specified method—obect version of SEE, from the
+	TOOLS wordset.
+\end{itemize}
+
+
+\section{OBJECT Base-Class Methods Glossary}
+These are methods that are defined for all instances by the base class
+OBJECT. The methods include default initialization, array manipulations,
+aliases of class methods, upcasting, and programming tools.
+\begin{itemize}[noitemsep]
+	\item INIT ( instance class -- )\newline
+	Default initializer, called automatically for all instances
+	created with NEW or NEW-ARRAY. Zero-fills the instance. You do
+	not normally need to invoke INIT explicitly.
+
+	\item ARRAYINIT ( nObjects instance class -- )\newline
+	Applies INIT to an array of objects created by NEW-ARRAY. Note
+	that ARRAY: does not cause aggregate arrays to be initialized
+	automatically. You do not normally need to invoke ARRAY-INIT
+	explicitly.
+
+	\item FREE ( instance class -- )\newline
+	Releases memory used by an instance previously created with
+	ALLOC or ALLOC-ARRAY.
+
+	\textbf{Note}: This method is not presently protected against
+	accidentally deleting something from the dictionary. If you do
+	this, Bad Things are likely to happen. Be careful for the moment
+	to apply free only to instances created with ALLOC or ALLOC-ARRAY.
+
+	\item CLASS ( instance class -- class metaclass )\newline
+	Convert an object signature into that of its class. Useful for
+	calling class methods that have no object aliases.
+
+	\item SUPER ( instance class -- instance superclass )\newline
+	Upcast an object to its parent class. The parent class of OBJECT
+	is zero. Useful for invoking an overridden parent class method.
+
+	\item PEDIGREE ( instance class -- )\newline
+	Display an object's pedigree — its chain of inheritance. This is
+	an alias for the corresponding class method.
+
+	\item SIZE ( instance class -- instance-size )\newline
+	Returns the size, in address units, of one instance. Does not
+	know about arrays! This is an alias for the class method GET-SIZE.
+
+	\item METHODS ( instance class -- )\newline
+	Class method alias. Displays the list of methods of the class
+	and all superclasses of the instance.
+
+	\item INDEX ( n instance class -- instance[n] class )\newline
+	Convert array-of-objects base signature into signature for array
+	element n. No check for bounds overflow. Index is zero-based,
+	like C, so
+\begin{lstlisting}[frame=single]
+0 MY-OBJ --> INDEX
+\end{lstlisting}
+	is equivalent to
+\begin{lstlisting}[frame=single]
+MY-OBJ
+\end{lstlisting}
+	Check out the description of -ROT for help in dealing with
+	indices on the stack.
+
+	\item NEXT ( instance[n] class -- instance[n+1] )\newline
+	Convert an array-object signature into the signature of the next
+	object in the array. No check for bounds overflow.
+
+	\item PREV ( instance[n] class -- instance[n-1] class )\newline
+	Convert an object signature into the signature of the previous
+	object in the array. No check for bounds underflow.
+\end{itemize}
+
+
+\subsection{Supplied Classes}
+For more information on theses classes, see \textit{softcore/classes.fr}.
+\begin{itemize}[noitemsep]
+	\item METACLASS\newline
+	Describes all classes of FICL. Contains class methods. Should
+	never be directly instantiated or subclassed. Defined in
+	\textit{softcore/oo.fr}. Methods described above.
+
+	\item OBJECT\newline
+	Mother of all FICL objects. Defines default initialization and
+	array indexing methods. Defined in \textit{softcore/oo.fr}.
+	Methods described above.
+
+	\item C-REF\newline
+	Holds the signature of another object. Aggregate one of these
+	into a data structure or container class to get polymorphic
+	behavior. Methods and members:
+	\begin{itemize}[noitemsep]
+		\item GET ( instance class -- ref-instance ref-class )\newline
+		Push the referenced object value on the stack.
+
+		\item SET ( ref-instance ref-class instance class -- )\newline
+		Set the referenced object being held.
+
+		\item .INSTANCE ( instance class -- a-address )\newline
+		Cell member that holds the instance.
+
+		\item .CLASS ( instance class -- a-address )\newline
+		Cell member that holds the class.
+	\end{itemize}
+
+	\item C-BYTE\newline
+	Primitive class derived from OBJECT, with a 1-byte payload. SET
+	and GET methods perform correct width fetch and store. Methods
+	and members:
+	\begin{itemize}[noitemsep]
+		\item GET ( instance class -- byte )\newline
+		Push the object's value on the stack.
+
+		\item SET ( byte instance class -- )\newline
+		Set the object's value from the stack.
+
+		\item .PAYLOAD ( instance class -- address )\newline
+		Member holds instance's value.
+	\end{itemize}
+
+	\item C-2BYTE\newline
+	Primitive class derived from OBJECT, with a 2-byte payload. SET
+	and GET methods perform correct width fetch and store. Methods
+	and members:
+	\begin{itemize}[noitemsep]
+		\item GET ( instance class -- 2byte )\newline
+		Push the object's value on the stack.
+
+		\item SET ( 2byte instance class -- )\newline
+		Set the object's value from the stack.
+
+		\item .PAYLOAD ( instance class -- address )\newline
+		Member holds instance's value.
+	\end{itemize}
+
+	\item C-4BYTE\newline
+	Primitive class derived from object, with a 4-byte payload. SET
+	and GET methods perform correct width fetch and store. Methods
+	and members:
+	\begin{itemize}[noitemsep]
+		\item GET ( instance class -- 4byte )\newline
+		Push the object's value on the stack.
+
+		\item SET ( 4byte instance class -- )\newline
+		Set the object's value from the stack.
+
+		\item .PAYLOAD ( instance class -- address )\newline
+		Member holds instance's value.
+	\end{itemize}
+
+	\item C-CELL\newline
+	Primitive class derived from OBJECT, with a cell payload
+	(equivalent to C-4BYTE on 32 bit platforms, 64 bits wide on
+	Alpha and other 64-bit platforms). SET and GET methods perform
+	correct width fetch and store. Methods and members:
+	\begin{itemize}[noitemsep]
+		\item GET ( instance class -- 4byte )\newline
+		Push the object's value on the stack.
+
+		\item SET ( 4byte instance class -- )\newline
+		Set the object's value from the stack.
+
+		\item .PAYLOAD ( instance class -- address )\newline
+		Member holds instance's value.
+	\end{itemize}
+
+	\item C-PTR\newline
+	Base class derived from OBJECT for pointers to non-object types.
+	This class is not complete by itself: several methods depend on
+	a derived class definition of @SIZE. Methods and members:
+	\begin{itemize}[noitemsep]
+		\item .ADDR ( instance class -- a-address )\newline
+		Member variable, holds the pointer address.
+
+		\item GET-PTR ( instance class -- pointer )\newline
+		Pushes the pointer address.
+
+		\item SET-PTR ( pointer instance class -- )\newline
+		Sets the pointer address.
+
+		\item INC-PTR ( instance class -- )\newline
+		Adds @SIZE to the pointer address.
+
+		\item DEC-PTR ( instance class -- )\newline
+		Subtracts @SIZE to the pointer address.
+
+		\item INDEX-PTR ( i instance class -- )\newline
+		Adds i * @SIZE to the pointer address.
+	\end{itemize}
+
+	\item C-BYTEPTR\newline
+	Pointer to byte derived from C-PTR. Methods and members:
+	\begin{itemize}[noitemsep]
+		\item @SIZE ( instance class -- size )\newline
+		Push size of the pointed-to object.
+
+		\item GET ( instance class -- byte )\newline
+		Pushes the pointer's referent byte.
+
+		\item SET ( byte instance class -- )\newline
+		Stores byte at the pointer address.
+	\end{itemize}
+
+	\item C-2BYTEPTR\newline
+	Pointer to 2byte derived from C-PTR. Methods and members:
+	\begin{itemize}[noitemsep]
+		\item @SIZE ( instance class -- size )\newline
+		Push size of the pointed-to object.
+
+		\item GET ( instance class -- 2byte )\newline
+		Pushes the pointer's referent 2byte.
+
+		\item SET ( 2byte instance class -- )\newline
+		Stores 2byte at the pointer address.
+	\end{itemize}
+
+	\item C-4BYTEPTR\newline
+	Pointer to 4byte derived from C-PTR. Methods and members:
+	\begin{itemize}[noitemsep]
+		\item @SIZE ( instance class -- size )\newline
+		Push size of the pointed-to object.
+
+		\item GET ( instance class -- 4byte )\newline
+		Pushes the pointer's referent 4byte.
+
+		\item SET ( 4byte instance class -- )\newline
+		Stores 4byte at the pointer address.
+	\end{itemize}
+
+	\item C-CELLPTR\newline
+	Pointer to cell derived from C-PTR. Methods and members:
+	\begin{itemize}[noitemsep]
+		\item @SIZE ( instance class -- size )\newline
+		Push size of the pointed-to object.
+
+		\item GET ( instance class -- cell )\newline
+		Pushes the pointer's referent cell.
+
+		\item SET ( cell instance class -- )\newline
+		Stores cell at the pointer address.
+	\end{itemize}
+
+	\item C-STRING\newline
+	Dynamically allocated string, similar to MFC's CString. For more
+	information, see \textit{softcore/string.fr}. Partial list of
+	methods and members:
+	\begin{itemize}[noitemsep]
+		\item GET ( instance class -- c-address u )\newline
+		Pushes the string buffer's contents as a C-ADDR U style
+		string.
+
+		\item SET ( c-address u instance class -- )\newline
+		Sets the string buffer's contents to a new value.
+
+		\item CAT ( c-address u instance class -- )\newline
+		Concatenates a string to the string buffer's contents.
+
+		\item COMPARE ( c-address u instance class -- result )\newline
+		Lexical compiration of a string to the string buffer's
+		contents. Return value is the same as the FORTH function
+		COMPARE.
+
+		\item TYPE ( instance class -- )\newline
+		Prints the contents of the string buffer to the output
+		stream.
+
+		\item HASHCODE ( instance class -- i )\newline
+		Returns a computed hash based on the contents of the
+		string buffer.
+
+		\item FREE ( instance class -- )\newline
+		Releases the internal buffer.
+	\end{itemize}
+
+	\item C-HASHSTRING\newline
+	Subclass of C-STRING, which adds a member variable to store a
+	hashcode. For more information, see \textit{softcore/string.fr}.
+\end{itemize}
+
