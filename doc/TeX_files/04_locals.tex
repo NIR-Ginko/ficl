@@ -1,0 +1,88 @@
+%!TEX encoding = UTF-8 Unicode
+\chapter{Local variables in Ficl}
+\section{An Overview And A History}
+Named, locally scoped variables came late to FORTH. Purists feel that
+experienced FORTH programmers can (and should) write supportable code
+using only anonymous stack variables and good factoring, and they
+complain that novices use global variables too frequently. But local
+variables cost little in terms of code size and execution speed, and
+are very convenient for OO programming (where stack effects are more
+complex).
+
+FICL provides excellent support for local variables, and the purists be
+damned — we use 'em all the time.
+
+Local variables can only be declared inside a definition, and are only
+visible in that definition. Please refer to the ANS standard for FORTH
+for more general information on local variables.
+
+
+\section{John-Hopkins Forth Argument Syntax}
+ANS Forth does not specify a complete local variable facility. Instead,
+it defines a foundation upon which to build one. FICL comes with an
+adaptation of the Johns-Hopkins local variable syntax, as developed by
+John Hayes et al. However, FICL extends this syntax with support for
+double-cell and floating-point numbers.
+
+Here's the basic syntax of a JH-local variable declaration:
+
+{ arguments | locals -- ignored }
+
+(For experienced FORTH programmers: the declaration is designed to look
+like a stack comment, but it uses curly braces instead of parentheses.)
+Each section must list zero or more legal FICL word names; comments and
+preprocessing are not allowed here. Here's what each section denotes:
+\begin{itemize}[noitemsep]
+	\item The arguments section lists local variables which are
+	initialized from the stack when the word executes. Each argument
+	is set to the top value of the stack, starting at the rightmost
+	argument name and moving left. You can have zero or more
+	arguments.
+
+	\item The \textit{locals} section lists local variables which
+	are set to zero when the word executes. You can have zero or
+	more locals.
+
+	\item Any characters between -- and \} are treated as a
+	comment, and ignored.
+\end{itemize}
+
+(The | and -- sections are optional, but they must appear in the order
+shown if they appear at all.)
+
+
+\section{Argument Types}
+Every time you specify a local variable (in either the arguments or the
+locals section), you can also specify the type of the local variable.
+By default, a local variable is a single-cell integer; you can specify
+that the local be a double-cell integer, and/or a floating-point number.
+
+To specify the type of a local, specify one or more of the following
+single-character specifiers, followed by a colon (:).
+\begin{itemize}[noitemsep]
+	\item \textbf{1} single-cell
+	\item \textbf{2} double-cell
+	\item \textbf{d} double-cell
+	\item \textbf{f} floating-point (use floating stack)
+	\item \textbf{i} integer (use data stack)
+	\item \textbf{s} single-cell
+\end{itemize}
+For instance, the argument f2:foo would specify a double-width
+floating-point number.
+
+The type specifiers are read right-to left, and when two specifiers
+conflict, the rightmost one takes priority. So 2is1f2:foo would still
+specifiy a double-width floating-point number.
+
+Note that this syntax only works for FICL's JH-locals. Locals defined in
+some other way (say, with the FORTH standard word LOCALS|) will ignore
+this syntax, and the entire string will be used as the name of the local
+(type and all).
+
+
+\section{A Simple Example}
+\begin{lstlisting}[frame=single]
+: DEMONSTRATE-JH-LOCALS { c b a  f:float -- a+b f:float*2 }
+  a b +
+  2.0e float f* ;
+\end{lstlisting}

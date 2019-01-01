@@ -1,0 +1,12 @@
+/*
+ * This file is used by CMake to configure your Ficl build properly.
+ */
+#define FICL_VERSION "${PROJECT_VERSION}"
+#define FICL_PROMPT "${FICL_PROMPT}"
+
+#define FICL_WANT_MINIMAL (${FICL_WANT_MINIMAL})
+#define FICL_WANT_LZ_SOFTCORE (${FICL_WANT_LZ_SOFTCORE})
+#define FICL_WANT_OOP (${FICL_WANT_OOP})
+#define FICL_WANT_LOCALS (${FICL_WANT_LOCALS})
+#define FICL_WANT_SOFTWORDS (${FICL_WANT_SOFTWORDS})
+

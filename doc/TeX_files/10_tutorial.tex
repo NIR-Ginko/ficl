@@ -1,0 +1,316 @@
+%!TEX encoding = UTF-8 Unicode
+\chapter{Tutorial}
+\section{FICL - an Embeddable Command Language Interpreter}
+FORTH for the rest of us.
+
+Glue languages like Perl, Tcl and Python are popular because they
+help you to get the results quickly. They make quick work of
+problems that are often tedious to code in C or C++, and they can
+work with code written in other languages. People often miss
+this last benefit because Perl or Python usually run standalone.
+Tcl, on the other hand, was designed from scratch as an extension
+language and is relatively simple to insert into another program.
+All of these languages were designed to work with mainstream
+operating systems, so they require lots of memory, a file system,
+and other resources that are commonplace on a modern PC or
+workstation. In this article, I'll describe an interpreter that has
+a system interafe similar in spirit to Tcl, but is specifically
+designed for embedded systems with minimal resources. The syntax is
+ANS FORTH, so I've called in FICL, or Forth-Inspired Command Language.
+
+FICL is FORTH but you don't have to be a rabid FORTH zealot to use it.
+In fact, you can do useful work without knowing any FORTH at all.
+On the other hand, you can learn enough in half an hour to do useful
+work. Read on and I'll show you. (From here on I'll use words FORTH
+and FICL interchangeably.)
+
+Why not write your own command interpreter? While tempting, this
+approach has its disadvantages. For one thing, you usually wind up
+with something that has line-oriented syntax where the command is at
+the beginning and any arguments come afterwards, and you can do
+one command per line. This is enough in many cases, and FICL can
+do this for you, too. But what if your customer asks for a behavior
+that's not hard-coded in the interpreter? Ficl is a small but
+complete programming language, not just a command interpreter, so
+you can hack together a prototype for that new behavior. If
+communication overhead os too high, consider downloading common
+groups of commands as stored programs, or "words" in FORTH, and you
+can invoke them with a single alias. Because FICL is interactive,
+you can use it to help troubleshoot problems. One more advantage of
+using FICL is that you can find several good tutorials for free
+on the Web, so you save the time on documentation and training:
+you only need to document your extensions to the language.
+
+As I implied above, people who do not program for a living can
+do useful work with FICL. Your friendly neghborhood electrical
+engineer can bench test new hardware quite easily using FICL,
+saving your time to add features or fix your own bugs (not that
+there will be any). You can use a minimal FICL system to do
+rapid prototyping on new hardware, getting new features to a
+demonstrable state normally is much less time than would be
+required with a compiled language.
+
+
+\section{Using the Language}
+\subsection{Enough FICL Syntax to Make You Dangerous}
+\textbf{First Rule of FICL}: Use spaces to separate everything. FORTH is
+very simple-minded about parsing its input: it looks for space-delimited
+tokens and tries to interpret them one by one.
+
+\textbf{Second Rule of FICL}: If it's not a word, try to make it a
+number. If that dpesn't work - it's an error. A word is a named piece of
+code (like a function or subroutine) that may also own some data. Words
+are organized into a list called a dictionary. For each token in the
+input stream, the interpreter tries to find a word with the same name
+in the dictionary. If successful, the interpreter will execute the word.
+Otherwise, the interpreter will convert the token to a number. If this
+fails, you get an error message. By the way, the Second Rule means you
+that you can do Evil Things like redefining your favorite number.
+
+\textbf{Third Rule of FICL}: Words find their arguments on a stack. The
+interpreter pushes numbers onto the stack automatically. The language
+does not have the equivalent of a function prototype, so FORTH
+programmers use comments to show the state of the stack before and
+after execution of a word. For example:
+\begin{lstlisting}[frame=single]
++ ( a b -- c)
+\end{lstlisting}
+indicates that the word "+" consumes two values from the stack (a and b)
+and leaves the third (c, the sum). By the way, an open paren followed by
+a space tells the interpreter to treat everything up to the next close
+paren as a comment. You can comment to the end of the line with a
+backslash character followed by a whitespace.
+
+Here's how you add two numbers in FORTH (if you've ever used an RPN
+calculator, you will be in familiar territory):
+\begin{lstlisting}[frame=single]
+2 3 + .
+\end{lstlisting}
+The interpreter pushes the number 2 and number 3 then executes the word
+"+" and finally executes the word ".". This prints the top value on the
+stack, which I hope is five.
+
+There are really two stack in FORTH: one stores return addresses and the
+other stores parameters. We'll refer to the parameter stack simply as
+"the stack" from now on.
+
+FICL is not case sensitive. Word names can be up to 255 characters long,
+but only the first 31 characters will be stored. All words are stored in
+a linked list called the dictionary. There exist words to allot space in
+the dictionary so that (other) words can have arbitary size data areas.
+
+FICL has these main data structures:
+\begin{itemize}[noitemsep]
+	\item A virtual machine stores one execution context, and would
+	typically map to a thread.
+
+	\item Each virtual machine has two stacks: one for parameters
+	and the other for return addresses.
+
+	\item A word binds name to code, and optionally, data.
+
+	\item The dictionary is a list of all words of the system.
+\end{itemize}
+See section 5 for more FICL syntax.
+
+
+\subsection{Porting FICL}
+As shown in Example 1, it only takes a few lines of code to hook FICL
+into your system: initialize the FICL system data structures with a call
+ficlInitSystem, and create one or more virtual machines using ficlNewVM.
+After that , you simply feed blocks of text to the virtual machine from
+an I/O device, a file, or stored strings using ficlExec. You can tear
+down memory allocated to FICL using ficlTermSystem.
+
+Example 1:
+\begin{lstlisting}[frame=single]
+FICL_VM *pVM;
+
+ficlInitSystem(10000); /* Create a 10000 cell dictionary. */
+pVM = ficlNewVM();
+
+for (;;) {
+	int ret;
+	gets(in);
+	ret = ficlExec(pVM, in);
+	if (VM_USEREXIT == ret) {
+		ficlTermSystem();
+		break;
+	}
+}
+\end{lstlisting}
+FICL requires ANSI C compiler and its runtime library to build and
+execute. Porting to a new CPU involves editing two files:
+\textit{sysdep.c} and \textit{sysdep.h}. The header file contains macros
+that control build properties of FICL, and macros that insulate the
+implementation from differences among compilers. FICL interfaces to the
+operating system via four functions:
+\begin{itemize}[noitemsep]
+	\item ficlMalloc and ficlFree map closely to the standard C
+	malloc and free functions, but they act as a choke-point for
+	FICL memory management in case your OS has specialized functions
+	for this purpose or you've rolled your own.
+
+	\item ficlLockDictionary provides exclusive access to the
+	dictionary in multithreaded implementations. If you only intend
+	to make one FICL virtual machine, this function can be empty.
+
+	\item ficlTextOut is like standard C's puts, except that it
+	takes a virtual machine pointer and one additional parameter to
+	indicate whether to terminate the string with a newline sequence.
+\end{itemize}
+Because FICL is a 32-bit FORTH, the language requires some 64-bit math.
+There are two unsigned primitives in \textit{sysdep.c} that handle this.
+One function multiplies two 32-bit values to yield a 64-bit result, and
+the other divides a 64-bit value by a 32-bit value to return a 32-bit
+quotinent and remainder. These are usually simple to implement as inline
+assembly for a 32-bit CPU (see Intel 386 example in the source). I was
+too lazy to come up with a generic version in C. If you're lazy too, you
+can cludge these functions to use only the low 32 bits of the 64 bit
+parameter and be safe - so long as you avoid multiplying and dividing
+really big numbers.
+
+Memory requirements of the code vary by proessor. The dictionary is the
+largest RAM-resident structure. The word set that comes with the source
+requires requires fewer than 1000 cells or 4K bytes. Stacks default to
+128 cells (512 bytes) each, so you can fit a useful implementation into
+8K bytes RAM plus code space (which can be in ROM). Use
+\textit{testmain.c} as a guide to installing FICL system and one or more
+virtual machines into your code. You do not need to include
+\textit{testmain.c} in your build.
+
+
+\subsection{Roll Your Own Extensions in C}
+You can extend the language with words that are specific to your
+application, written in C, FORTH, or in mixture of C and FORTH. Use
+ficlBuild function to bind a C function to a name in the dictionary.
+Functions that implement FICL words take one parameter: a pointer to a
+FICL\_ VM. This pointer refers to the running virtual machine in whose
+context the word executes. The files \textit{words.c} and \textit{main.c}
+have (literally) hundreds of examples of words coded in C. Example 2
+shows a function that interfaces FICL to the Win32 "chdir" service:
+\begin{lstlisting}[frame=single]
+/*
+** FICL interface to _chdir (Win32)
+** Gets a newline (or NULL) delimited string from the input
+** and feeds it to the Win32 chdir function...
+** Usage example:
+**   cd c:\tmp
+*/
+static void ficlChDir(FICL_VM *pVM) {
+	FICL_STRING *pFS = (FICL_STRING*) pVM->pad;
+	vmGetString(pVM, pFS, '\n');
+	if (0 < pFS->count && _chdir(pFS->text)) {
+		vmTextOut(pVM, "Error: path not found", 1);
+		vmThrow(pVM, VM_QUIT);
+	}
+	return;
+}
+
+/* Here's the corresponding ficlBuild call:
+** ficlBuild("cd", ficlChDir, FW_DEFAULT);
+*/
+\end{lstlisting}
+To write a new FICL word in FORTH, follow the examples in
+\textit{softcore.c}: embed the source in a string constant, and feed the
+string to ficlExec once you have a virtual machine created. You'll also
+find some examples of words coded in a mixture of C and FORTH in
+\textit{words.c} (see 'evaluate' for example). Because ficlExec calls
+can be nested, you can invoke ficlExec from within a function that
+implements a word and feed it a string argument, effectively mixing the
+two languages.
+
+\section{Using FICL: An example}
+Here's a quick example of FICL at work. Suppose we have a simple target
+board that has a block of 8 LEDs, 8 DIP switches, an 8-bit analog to
+digital converter, and an 8-bit DAC. (Conveniently, this is what FICL
+simulates.) Let's start by setting up an address map:
+\begin{lstlisting}[frame=single]
+hex
+10000 constant leds
+10002 constant switches
+20000 constant adc
+20002 constant dac
+\end{lstlisting}
+What happened? The first line tells FICL that we're going to be writing
+numbers in hexadecimal. The next four lines set up named constants for
+the registers we want to use. When we invoke one of these constants (by
+typing its name), it pushes its value.
+\begin{lstlisting}[frame=single]
+: !oreg ( value -- ) leds c! ;
+: @adc  ( -- value ) adc c@ ;
+: !dac  ( value -- ) dac c! ;
+: @ireg ( -- value ) switches c@ ;
+\end{lstlisting}
+A constant pushes its value when invoked, and a variable pushes its
+address. The FICL word @ (the at-sign) fetches the contents of an
+address and puts the 32-bit value on the stack. FICL also has c@ to
+fetch a byte, and w@ to fetch 16 bits. Likewise, !, w! and c! store
+a value at an address. The syntax is ( value address -- ), meaning that
+the operations consume a value and an address from the stack. The lines
+above create FICL words that hide the width of the registers they use by
+wrapping the fetch or store operation.
+\begin{lstlisting}[frame=single]
+variable led-shadow 0 led-shadow !
+: !leds ( value -- ) dup !oreg led-shadow ! ;
+0 !leds
+\end{lstlisting}
+The first line above creates a variable to track the LED state. (Real
+hardware engineers often find it too expensive or too bothersome to add
+a readback capability to digital output registers.) The word on the
+second line writes the LED register and updates the shadow variable.
+The last line forces the LEDs off.
+\begin{lstlisting}[frame=single]
+: toggle-led ( led -- )
+	1 swap lshift    \ make a bitmak for the LED
+	led-shadow @ xor \ toggle the bit in the shadow reg
+	!oreg ;          \ now update the LED and shadow
+\end{lstlisting}
+This word toggles a LED by index (0..7). lshift is equivalent to C's
+<< operator.
+\begin{lstlisting}[frame=single]
+: adc-loop
+	begin
+		@adc dup !dac 100 msec
+	255 = until ;
+\end{lstlisting}
+The above word loops writing the ADC value back to the DAC until the
+ADC value reaches 255. After each ADC sample, there is a 100  millisecond
+pause.
+
+There are extremely simple examples, but they give a feel for the accretive
+process one uses to bring up hardware with FICL.
+
+\section{FICL Quick Start}
+\begin{tabular}{| l | l |}
+	\hline
+	.s & Displays the contents of the stack non-destructively \\ \hline
+	. & Pops the top of the stack and displays it \\ \hline
+	hex & Set number base to hex (decimal is the default) \\ \hline
+	decimal & Set number base to decimal \\ \hline
+	\textbf{Arithmetic} \\ \hline
+	+ - * ( a b -- c) & Pop a and b off the stack, perform the operation, and push the result. Example\newline
+	3 2 + ( leaves 5 on the stack ) \\ \hline
+	negate ( x -- -x ) & Change the sign of the value on top of the stack.
+	\textbf{Stack operations} \\ \hline
+	dup ( x -- x x ) & copy the top of the stack \\ \hline
+	swap (x y -- y x ) & swap the top two cells \\ \hline
+	\textbf{Logic} \\ \hline
+	true ( -- -1 ) & \\ \hline
+	false ( -- 0 ) & False is always zero in FORTH, and true can be
+	defined as false invert (all bits reversed). Used for logical
+	and bitwise operations. Logical operations view any non-zero
+	value as true, as... \\ \hline
+	and or xor ( x y -- z ) & Perform bitwise operations on two
+	arguments and push the result. \\ \hline
+	invert ( x -- ~x ) & One's complement the top of the stack. \\ \hline
+	< > <> = ( x y -- flag ) & Perform comparison and push the true or false \\ \hline
+	\textbf{Fetch and Store} \\ hline
+	@ w@ c@ ( address -- value ) & Fetch 32, 16, 8 bits respectively
+	from address and leave the result on the stack. Values padded to
+	32 bits \\ \hline
+	! w! c! ( value -- address ) & Store 32, 16 or 8 bits respectively
+	of value at address. \\ \hline
+	\textbf{Creating new words} \\ \hline
+	constant 
+\end{tabular}

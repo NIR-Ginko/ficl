@@ -1,0 +1,887 @@
+%!TEX encoding = UTF-8 Unicode
+\chapter{Release History}
+\section{Release Plan}
+\begin{itemize}[noitemsep]
+	\item 4.3.0
+		\subitem Add manpage in ru\_RU.UTF-8.
+		\subitem Add FreeBSD patches to the distribution.
+		\subitem Improve LaTeX documentation sources.
+\end{itemize}
+
+
+\section{Version 4.2.0}
+I don't know what was changed for 4.1.0 so here is the list of the
+work I've done:
+\begin{itemize}[noitemsep]
+	\item Manpage added in en\_US.UTF-8. Please translate it into
+		other languages as well.
+	\item Documentation converted into LaTeX so you can convert it
+		into any format you like - HTML or PDF for example.
+	\item Ficl now builds with CMake (CMakeLists.txt added) but
+		I also support classic Makefile.
+	\item Ficl now understands POSIX shebang.
+	\item Ficl can now run in quiet mode (for scripting) when
+		ran like 'ficl -q somescript.fth'.
+\end{itemize}
+All the changes are public domain (or any license you like).
+
+
+\section*{Version 4.0.31}
+\begin{itemize}[noitemsep]
+	\item First official release of new engine as Ficl 4! Hooray!
+
+	\item ficlDictionarySee() now takes a ficlCallback, so it knows
+	where to print to. This is because ficlWin only sets a per-VM
+	callback, which should work.
+
+	\item ficlSystemCreate() now passes in the system correctly into
+	the dictionaries it creates, which lets dictionaries know what
+	system they're a part of.
+
+	\item ficlCompatibility: Forgot to add the errorTextOut to the
+	ficl\_system structure (though I'd remembered to add it to the
+	ficl\_vm structure). This caused the ficl\_system members after
+	textOut to not line up with their equivalent ficlSystem members,
+	which did bad things. (The bad thing in particular was calling
+	ficlDictionaryResetSearchOrder() resulted in diddling the
+	vm-\textgreater link member, which strangely enough resulted in
+	double-freeing the stacks.)
+
+	\item Added ficlStackWalk(), which walks a stack from top to
+	bottom and calls your specified callback with each successive
+	element. Cleaned up stack-printing functions as a result.
+
+	\item Changed MULTICALL so you can explicitly specify the vtable.
+
+	\item Changed XClasses so it explicitly specifies the vtable for
+	non-virtual classes. This means you can now call a virtual
+	method when you've SUPERed an object and you'll get the method
+	you wanted.
+
+	\item XClasses improvement: when removing a thunked method,
+	remove the thunk variable too. Added xClass.removeMember() to
+	support this.
+
+	\item XClasses now generates runtime stack-check code (\_DEBUG
+	only) for functions thunked from C to FICL.
+
+	\item FICL\_WANT\_PLATFORM is now 0 by default. It is now set
+	to 1 in the appropriate \textit{ficlplatform/*.h}.
+
+	\item \textit{softcore/win32.fr} ENVIRONMENT? COMPARE needed to
+	be case-insensitive.
+
+	\item Whoops! Setting FICL\_PLATFORM\_2INTEGER to 0 didn't
+	compile. It now does, and works fine, as proved by the ansi
+	platform.
+
+	\item Another whoops: \textit{contrib/xclasses/xclasses.py}
+	assumed that " (a prefix version of S") defined. Switched to S",
+	which is safer.
+\end{itemize}
+
+
+\section*{Version 4.0.30}
+\begin{itemize}[noitemsep]
+	\item Cleaned up some FICL\_ definitions. Now all FICL\_HAVE\_*
+	constants (and some other odds and ends) have been
+	moved to FICL\_PLATFORM\_.
+
+	\item Whoops! Setting FICL\_PLATFORM\_2INTEGER to 0 didn't compile.
+	It now does, and works fine, as proved by the "ansi" platform.
+
+	\item Another whoops: \textit{contrib/xclasses/xclasses.py}
+	assumed that " (a prefix version of S") defined. Switched to S",
+	which is safer.
+
+	\item Added ficlDictionarySetConstantString(). 'Cause I needed
+	it for:
+
+	\item Removed the "WIN32" ENVIRONMENT? setting, and added
+	"FICL\_PLATFORM\_OS" and "FICL\_PLATFORM\_ARCHITECTURE" in its
+	place. These are both strings. Updated
+	\textit{softcore/win32.fr} to match.
+
+	\item Compatibility: improved ficlTextOut() behavior. It makes
+	life slightly less convenient for some users, but should be an
+	improvement overall. The change: ficlTextOut() is now a
+	compatibility-layer function that calls straight through to
+	vmTextOut(). Lots of old code calls ficlTextOut() (naughty!).
+	It's now explicit that you must set the textOut function by hand
+	if you use a custom one... which is a good habit to get in to
+	anyway.
+
+	\item Improved the documentation regarding upgrading,
+	\textit{ficllocals.h}, and compile-time constants.
+
+	\item Fixed \textit{doc/source/generate.py} so it gracefully
+	fails to copy over read-only files.
+
+	\item Got rid of every \# ifdef in the sources. We now
+	consistently use \# if defined() everywhere. Similarly, got rid
+	of all platform-switched \# if code (except for the
+	compatibility layer, sigh).
+\end{itemize}
+
+
+\section*{Version 4.0.29}
+\begin{itemize}[noitemsep]
+	\item Documentation totally reworked and updated.
+
+	\item oldnames renamed to compatibility. And improved, so that
+	now FICL 4 is basically a drop-in replacement for FICL 3.
+\end{itemize}
+
+
+\section*{Version 4.0.28}
+\begin{itemize}[noitemsep]
+	\item Did backwards-compatibility testing. FICL now drops in,
+	more or less, with all the old FICL-3.03-using projects I had
+	handy.
+
+	\item Got FICL compiling and running fine on Linux.
+
+	\item Weaned LZ77 code from needing htonl()/ntohl().
+
+	\item Moved all the primitives defined in \textit{"testmain.c"}
+	to their own file, \textit{"extras.c"}, and gave it its own
+	global entry point.
+
+	\item Renamed \textit{"testmain.c"} to just plain \textit{"main.c"}.
+
+	\item Renamed \textit{"softwords"} directory to
+	\textit{"softcore"}. More symmetrical.
+
+	\item Renamed \textit{"softcore/softcore.bat"} to
+	\textit{"make.bat"}. Added support for "CLEAN".
+\end{itemize}
+
+
+\section*{Version 4.0.27}
+\begin{itemize}[noitemsep]
+	\item Added runtime jump-to-jump peephole optimization in the
+	new switch-threaded VM.
+
+	\item Fixed INCLUDE-FILE so it rethrows an exception in the
+	subordinate evaluation.
+
+	\item Added a separate errorOut function to ficlCallback(), so
+	under Windows you can have a jolly popup window to rub your nose
+	in your failings.
+\end{itemize}
+
+
+\section*{Version 4.0.26}
+\begin{itemize}[noitemsep]
+	\item Namespace policing complete. There are now no external
+	symbols which do not start with the word ficl.
+
+	\item Removed ficlVmExec(), renamed ficlVmExecC() to
+	ficlVmExecuteString(), changed it to take a ficlString(). This
+	is deliberate subterfuge on my part; I suspect most people who
+	currently call ficlVmExec() / ficlVmExecC() should be calling
+	ficlVmEvaluate().
+\end{itemize}
+
+
+\section*{Version 4.0.25}
+\begin{itemize}[noitemsep]
+	\item First pass at support for "oldnames", and namespace
+	policing.
+\end{itemize}
+
+
+\section*{Version 4.0.23}
+First alpha release of FICL 4.0 rewrite. Coded, for better or for worse,
+by Larry Hastings. FICL is smaller, faster, more powerful, and easier to
+use than ever before. (Or your money back!)
+\begin{itemize}[noitemsep]
+	\item Rewrote FICL's virtual machine; FICL now runs nearly 3x
+	faster out-of-the-box. The new virtual machine is of the "big
+	switch statement" variety.
+
+	\item Renamed most (probably all) external FICL functions and
+	data structures. They now make sense and are (gasp!) consistent.
+
+	\item Retooled double-cell number support to take advantage of
+	platforms which natively support double-cell-sized integers.
+	(Like most modern 32-bit platforms.)
+
+	\item Locals and VALUEs are now totally orthogonal; they can be
+	single- or double-cell, and use the float or data stack. TO
+	automatically supports all variants.
+
+	\item The "softcore" words can now be stored compressed, with a
+	(current) savings of 11k. Decompression is nigh-instantaneous.
+	You can choose whether or not you want softcore stored
+	compressed at compile-time.
+
+	\item Reworked Win32 build process. FICL now builds
+	out-of-the-box on Win32 as a static library, as a DLL, and as a
+	command-line program, in each of the six possible runtime
+	variants (Debug, Release x Singlethreaded, Multithreaded,
+	Multithreaded DLL).
+\end{itemize}
+
+
+\section*{Version 3.03}
+\begin{itemize}[noitemsep]
+	\item Bugfix for floating-point numbers. Floats in compiled
+	code were simply broken.
+
+	\item New words: random and seed-random
+
+	\item Bugfix: included never closed its file.
+
+	\item Bugfix: include was not IMMEDIATE.
+
+	\item Un-hid the OO words parse-method, lookup-method, and
+	find-method-xt, as there are perfectly legitimate reasons why
+	you might want to use them.
+
+	\item Changed the prefix version of .( to be IMMEDIATE too.
+
+	\item Fixed comment in Python softcore builder.
+
+	\item Put the \textit{doc} directory back in to the
+	distribution. (It was missing from 3.02... where'd it go?)
+\end{itemize}
+
+
+\section*{Version 3.02}
+\begin{itemize}[noitemsep]
+	\item Added support for nEnvCells (number of environment cells)
+	to FICL\_SYSTEM\_INFO.
+
+	\item Consolidated context and pExtend pointers of
+	FICL\_SYSTEM—VM's pExtend pointer is initialized from the copy
+	in FICL\_SYSTEM upon VM creation.
+
+	\item Added ficl-robust environment variable.
+
+	\item Added FW\_ISOBJECT word type.
+
+	\item Bugfix: environment? was ignoring the length of the
+	supplied string.
+
+	\item Portability cleanup in \textit{fileaccess.c}.
+
+	\item Bugfix in ficlParsePrefix: if the prefix dictionary isn't
+	in the wordlist, the word being examined cannot be a prefix, so
+	return failure.
+
+	\item SEE improvements: SEE (and consequently DEBUG) have
+	improved source listings with instruction offsets.
+
+	\item It's turned off with the preprocessor, but we have the
+	beginnings of a switch-threaded implementation of the inner loop.
+
+	\item Added objectify and ?object for use by OO infrastructure.
+
+	\item my=[ detects object members (using ?object) and assumes
+	all other members leave class unchanged.
+
+	\item Removed MEMORY-EXT environment variable (there is no such
+	wordset).
+
+	\item Ficlwin changes:
+		\subitem Ficlwin character handling is more robust
+
+		\subitem Ficlwin uses multi-system constructs (see
+		\textit{ficlthread.c})
+
+	\item Documentation changes:
+		\subitem Corrected various bugs in docs.
+
+		\subitem Added FICL-ized version of JV Noble's Forth
+		Primer
+
+		\subitem FICL OO tutorial expanded and revised. Thanks
+		to David McNab for his demo and suggestions.
+\end{itemize}
+
+
+\section*{Version 3.01}
+\begin{itemize}[noitemsep]
+	\item Major contributionss by Larry Hastings (larry@hastings.org):
+		\subitem FILE wordset (\textit{fileaccess.c})
+
+		\subitem ficlEvaluate wrapper for ficlExec
+
+		\subitem ficlInitSystemEx makes it possible to bind
+		selectable properties to VMs at create time
+
+		\subitem Python version of softcore builder
+		\textit{ficl/softwords/softcore.py}
+	\item Environment contains ficl-version (double)
+
+	\item ?number handles trailing decimal point per DOUBLE wordset
+	spec
+
+	\item Fixed broken .env (thanks to Leonid Rosin for spotting
+	this goof)
+
+	\item Fixed broken floating point words that depended on
+	evaluation order of stack pops.
+
+	\item env-constant
+
+	\item env-2constant
+
+	\item dictHashSummary is now commented out unless
+	FICL\_WANT\_FLOAT (thanks to Leonid Rosin again)
+
+	\item Thanks to David McNab for pointing out that .( should be
+	IMMEDIATE. Now it is.
+\end{itemize}
+
+
+\section*{Version 3.00a}
+\begin{itemize}[noitemsep]
+	\item Fixed broken \textit{oo.fr} by commenting out vcall stuff
+	using FICL\_WANT\_VCALL. Vcall is still broken.
+\end{itemize}
+
+
+\section*{Version 3.00}
+\begin{itemize}[noitemsep]
+	\item Added pSys parameter to most ficlXXXX functions for
+	multiple system support. Affected functions:
+		\subitem dictLookupLoc renamed to ficlLookupLoc after
+		addition of pSys param
+
+		\subitem ficlInitSystem returns a FICL\_SYSTEM*
+
+		\subitem ficlTermSystem
+
+		\subitem ficlNewVM
+
+		\subitem ficlLookup
+
+		\subitem ficlGetDict
+
+		\subitem ficlGetEnv
+
+		\subitem ficlSetEnv
+
+		\subitem ficlSetEnvD
+
+		\subitem ficlGetLoc
+
+		\subitem ficlBuild
+	\item Fixed off-by-one bug in ficlParsePrefix
+
+	\item FICL parse-steps now work correctly - mods to interpret()
+
+	\item Made \textit{tools.c}:isAFiclWord more selective
+
+	\item Tweaked makefiles and code to make gcc happy under linux
+
+	\item Vetted all instances of LVALUEtoCELL to make sure they're
+	working on CELL sized operands (for 64 bit compatibility)
+\end{itemize}
+
+
+\section*{Version 2.06}
+\begin{itemize}[noitemsep]
+	\item Debugger changes:
+		\subitem New debugger command "x" to execute the rest
+		of the command line as FICL
+
+		\subitem New debugger command "l" lists the source of
+		the innermost word being debugged
+
+		\subitem If you attempt to debug a primitive, it gets
+		executed rather than doing nothing
+
+		\subitem R.S displays the stack contents symbolically
+
+		\subitem Debugger now operates correctly under ficlwin,
+		although ficlwin's key handling leaves a lot to be
+		desired.
+
+		\subitem EE listing enhanced for use with the debugger
+
+	\item Added Guy Carver's changes to \textit{oo.fr} for VTABLE
+	support
+
+	\item \textit{float.c} words f\textgreater  and \textgreater f
+	to move floats to and from the param stack, analogous
+	to \textgreater r and r\textgreater
+
+	\item LOOKUP - Surrogate precompiled parse step for
+	ficlParseWord (this step is hard coded in INTERPRET)
+
+	\item License text at top of source files changed from LGPL to
+	BSD by request
+
+	\item Win32 console version now handles exceptions more
+	gracefully rather than crashing - uses win32 structured
+	exception handling.
+
+	\item Fixed BASE bug from 2.05 (was returning the value rather
+	than the address)
+
+	\item Fixed ALLOT bug - feeds address units to dictCheck, which
+	expects Cells. Changed dictCheck to expect AU.
+
+	\item Float stack display word renamed to f.s from .f to be
+	consistent with r.s and .s
+\end{itemize}
+
+
+\section*{Version 2.05}
+\subsection*{General}
+\begin{itemize}[noitemsep]
+	\item HTML documentation extensively revised
+
+	\item Incorporated Alpha (64 bit) patches from the FreeBSD team.
+
+	\item Split SEARCH and SEARCH EXT words from \textit{words.c}
+	to search.c
+
+	\item 2LOCALS defined in Johns Hopkins local syntax now lose the
+	first '2:' in their names.
+
+	\item Simple step debugger (see \textit{tools.c})
+
+	\item The text interpreter is now extensible - this is
+	accomplished through the use of ficlAddParseStep().
+	FICL\_MAX\_PARSE\_STEPS limits the number of parse steps
+	(default: 8). You can write a precompiled parse step (see
+	ficlParseNumber) and append it to the chain, or you can write
+	one in FICL and use ADD-PARSE-STEP to append it. Default parse
+	steps are initialized in ficlInitSystem. You can list the parse
+	steps with parse-order ( -- ).
+
+	\item There is now a FICL\_SYSTEM structure. This is a
+	transitional release - version 3.0 will alter several API
+	prototypes to take this as a parameter, allowing multiple
+	systems per process (and therefore multiple dictionaries). For
+	those who use FICL under a virtual memory OS like Linux or
+	Windows NT, you can just create multiple FICL processes (not
+	threads) instead and save youself the wait.
+
+	\item Fixes for improved command line operation in
+	\textit{testmain.c} (Larry Hastings)
+
+	\item Numerous extensions to OO facility, including a new allot
+	methods, ability to catch method invocations (thanks to Daniel
+	Sobral again)
+
+	\item Incorporated Alpha (64 bit) patches contributed by Daniel
+	Sobral and the freeBSD team Ficl is now 64 bit friendly! UNS32
+	is now FICL\_UNS.
+
+	\item Split SEARCH and SEARCH EXT words from \textit{words.c}
+	to \textit{search.c}
+
+	\item ABORT" now complies with the ANS (-2 THROWs)
+
+	\item Floating point support contributed by Guy Carver
+	(Enable FICL\_WANT\_FLOAT in \textit{sysdep.h}).
+
+	\item Win32 vtable model for objects (Guy Carver)
+
+	\item Win32 dll load/call suport (Larry Hastings)
+
+	\item Prefix support (Larry Hastings) (\textit{prefix.c}
+	\textit{prefix.fr}
+	FICL\textunderscore EXTENDED\textunderscore PREFIX) makes
+	it easy to extend the parser to recognize prefixes like 0x
+	and act on them. Use show-prefixes to see what's defined.
+
+	\item Cleaned up initialization sequence so that it's all in
+	ficlInitSystem, and so that a VM can be created successfully
+	before the dictionary is created
+\end{itemize}
+
+
+\subsection*{Bug fixes}
+\begin{itemize}[noitemsep]
+	\item ABORT" now works correctly
+	\item REFILL works better
+	\item ALLOT's use of dictCheck corrected
+\end{itemize}
+
+
+\subsection*{New words}
+\begin{itemize}[noitemsep]
+	\item 2r@ 2r\textgreater 2\textgreater r (CORE EXT)
+
+	\item 2VARIABLE (DOUBLE)
+
+	\item ORDER now lists wordlists by name
+
+	\item .S now displays all stack entries on one line, like a
+	stack comment
+
+	\item wid-get-name   given a wid, returns the address and count
+	of its name. If no name, count is 0
+
+	\item wid-set-name  set optional wid name pointer to the \\0
+	terminated string address specified.
+
+	\item ficl-named-wordlist creates a ficl-wordlist and names it.
+	This is now used in vocabulary and ficl-vocabulary
+
+	\item last-word  returns the xt of the word being defined or
+	most recently defined.
+
+	\item q@ and q! operate on quadbyte quantities for 64 bit
+	friendliness
+\end{itemize}
+
+
+\subsection*{New OO stuff}
+\begin{itemize}[noitemsep]
+	\item ALLOT (class method)
+
+	\item ALLOT-ARRAY (class method)
+
+	\item METHOD define method names globally
+
+	\item MY=\textgreater  early bind a method call to "this" class
+
+	\item MY=[ ] early bind a string of method calls to "this" class
+	and obj members
+
+	\item C-\textgreater  late bind method invocation with CATCH
+
+	\item Metaclass method resume-class and instance word
+	suspend-class create mutually referring classes. Example in
+	\textit{string.fr}
+
+	\item Early binding words are now in the instance-vars wordlist,
+	not visible unless defining a class.
+
+	\item Support for refs to classes with VTABLE methods
+	(contributed by Guy Carver). Guy writes:
+
+	My next favorite change is a set of VCALL words that allow me to
+	call C++ class virtual methods from my FORTH classes. This is
+	accomplished by interfacing with the VTABLE of the class. The
+	class instance currently must be created on the C++ side. C++
+	places methods in the VTABLE in order of declaration in the
+	header file. To use this in FICL one only needs to ensure that
+	the VCALL: declerations occur in the same order. I use this
+	quite a bit to interface with the C++ classes. When I need
+	access to a method I make sure it is virtual (Even if it
+	ultimately will not be). I use Visual C++ 6.0 and have not
+	tested this under any other compiler but I believe VTABLE
+	implementation is standard.
+
+	Here is an example of how to use VCALL:
+
+	\textbf{C++ class declaration}
+\begin{lstlisting}[frame=single]
+class myclass {
+public:
+	myclass();
+	virtual ~myclass();
+
+	virtual void Test( int iParam1 );
+	virtual int Test( int iParam1, char cParam2 );
+	virtual float Test();
+};
+\end{lstlisting}
+	\textbf{ficl class declaration}
+\begin{lstlisting}[frame=single]
+object subclass myfclass hasvtable   \ hasvtable adds 4 to the offset to
+\  accommodate for the VTABLE pointer.
+0 VCALL: Destructor()      \ VCALL: ( ParamCount -- )
+1 VCALL: Test(int)         \ Test takes 1 int parameter.
+2 VCALLR: iTest(int,char)  \ iTest takes 2 parameters and returns an int.  
+0 VCALLF: fTest()          \ fTest takes no parameters and returns a float.
+end-class
+
+MyCAddress                 \ Primitive to return a pointer to a "myclass" instance.
+myfclass -> ref dude       \ This makes the MyCAddress pointer a myfclass
+\  instance with the name "dude".
+1234 dude -> Test(int)     \ Calls the virtual method Test.
+1234 1 dude -> iTest(int,char) .  \ Calls iTest and emits the returned int.
+dude -> fTest() f.         \ Calls fTest and emits the returned float.
+\end{lstlisting}
+\end{itemize}
+
+
+\section*{Version 2.04}
+\subsection*{ficlwin}
+\begin{itemize}[noitemsep]
+	\item Catches exceptions thrown by VM in ficlThread (0 @ for
+	example) rather than passing them off to the OS.
+\end{itemize}
+
+
+\subsection*{FICL bugs vanquished}
+\begin{itemize}[noitemsep]
+	\item Fixed leading delimiter bugs in s" ." .( and (
+	(reported by Reuben Thomas)
+
+	\item Makefile tabs restored (thanks to Michael Somos)
+
+	\item ABORT" now throws -2 per the DPANS (thanks to Daniel
+	Sobral for sharp eyes again)
+
+	\item ficlExec does not print the prompt string unless
+	(source-id == 0)
+
+	\item Various fixes contributed by the FreeBSD team.
+\end{itemize}
+
+
+\subsection*{FICL enhancements}
+\begin{itemize}[noitemsep]
+	\item \textit{words.c}: modified ficlCatch to use vmExecute and
+	vmInnerLoop (request of Daniel Sobral) Added vmPop and vmPush
+	functions (by request of Lars Krueger) in \textit{vm.c}. These
+	are shortcuts to the param stack. (Use LVALUEtoCELL to get
+	things into CELL form)
+
+	\item Added function vmGetStringEx with a flag to specify
+	whether or not to skip lead delimiters
+
+	\item Added non-std word: number?
+
+	\item Added CORE EXT word AGAIN (by request of Reuben Thomas)
+
+	\item Added double cell local (2local) support
+
+	\item Augmented Johns Hopkins local syntax so that locals whose
+	names begin with char 2 are treated as 2locals (OK - it's goofy,
+	but handy for OOP)
+
+	\item C-string class revised and enhanced - now dynamically
+	sized
+
+	\item C-hashstring class derived from c-string computes hashcode
+	too.
+\end{itemize}
+
+
+\section*{Version 2.03}
+This is the first version of FICL that includes contributed code. Thanks
+especially to Daniel Sobral, Michael Gauland for contributions and bug
+finding.
+
+\subsection*{New words}
+\begin{itemize}[noitemsep]
+	\item clock              (FICL)
+	\item clocks/sec         (FICL)
+	\item dnegate            (DOUBLE)
+	\item ms                 (FACILITY EXT - replaces MSEC ficlWin only)
+	\item throw              (EXCEPTION)
+	\item catch              (EXCEPTION)
+	\item allocate           (MEMORY)
+	\item free               (MEMORY)
+	\item resize             (MEMORY)
+	\item within             (CORE EXT)
+	\item alloc              (class method)
+	\item alloc-array        (class method)
+	\item free               (class method)
+\end{itemize}
+
+
+\subsection*{Bugs Fixed}
+\begin{itemize}[noitemsep]
+	\item Bug fix in isNumber(): used to treat chars between 'Z'
+	and 'a' as valid in base 10... (harmless, but weird)
+
+	\item ficlExec pushes the ip and interprets at the right times
+	so that nested calls to ficlExec behave the way you'd expect
+	them to.
+
+	\item evaluate respects count parameter, and also passes
+	exceptional return conditions back out to the calling instance
+	of ficlExec.
+
+	\item VM\_QUIT now clears the locals dictionary in ficlExec.
+\end{itemize}
+
+
+\subsection*{Ficlwin Enhancements}
+\begin{itemize}[noitemsep]
+	\item File Menu: recent file list and Open now load files.
+
+	\item Text ouput function is now faster through use of string
+	caching. Cache flushes at the end of each line and each time
+	ficlExec returns.
+
+	\item Edit/paste now behaves more reasonably for text.
+	File/open loads the specified file.
+
+	\item Registry entries specify dictionary and stack sizes,
+	default window placement, and whether or not to create a
+	splitter for multiple VMs. See
+	\textit{HKEY\_CURRENT\_USER/Software/CodeLab/ficlwin/Settings}
+\end{itemize}
+
+
+\subsection*{FICL Enhancements}
+\begin{itemize}[noitemsep]
+	\item This version includes changes to make it 64 bit friendly.
+	This unfortunately meant that I had to tweak some core data
+	types and structures. I've tried to make this transparent to 32
+	bit code, but a couple of things got renamed. INT64 is now
+	DPINT. UNS64 is now DPUNS. FICL\_INT and FICL\_UNS are synonyms
+	for INT32 and UNS32 in 32 bit versions, but a are obsolescent.
+	Please use the new data types instead. Typed stack operations
+	on INT32 and UNS32 have been renamed because they operate on
+	CELL scalar types, which are 64 bits wide on 64 bit systems.
+	Added BITS\_PER\_CELL, which has legal values of 32 or 64.
+	Default is 32.
+
+	\item \textit{ficl.c}: Added ficlExecXT() - executes an xt
+	completely before returning, passing back any exception codes
+	generated in the process. Normal exit code is VM\_INNEREXIT.
+
+	\item \textit{ficl.c}: Added ficlExecC() to operate on counted
+	strings as opposed to zero terminated ones.
+
+	\item ficlExec pushes ip and executes interpret at the right
+	times so that nested calls to ficlExec behave the way you'd
+	expect them to.
+
+	\item ficlSetStackSize() allows specification of stack size at
+	run-time (affects subsequent invocations of ficlNewVM()).
+
+	\item \textit{vm.c}: vmThrow() checks for (pVM-\textgreater
+	pState != NULL) before longjmping it. vmCreate nulls this
+	pointer initially.
+
+	\item EXCEPTION wordset contributed by Daniel Sobral of FreeBSD
+
+	\item MEMORY-ALLOC wordset contributed by Daniel Sobral, too.
+	Added class methods alloc and alloc-array in
+	\textit{softwords/oo.fr} to allocate objects from the heap.
+
+	\item Control structure match check upgraded (thanks to Daniel
+	Sobral for this suggestion). Control structure mismatches are
+	now errors, not warnings, since the check accepts all
+	syntactically legal constructs.
+
+	\item Added vmInnerLoop() to \textit{vm.h}. This function/macro
+	factors the inner  interpreter out of ficlExec so it can be used
+	in other places. Function/macro behavior is conditioned on
+	INLINE\_INNER\_LOOP in \textit{sysdep.h}. Default: 1 unless
+	\_DEBUG is set. In part, this is because VC++ 5 goes apoplectic
+	when trying to compile it as a function. See comments in
+	\textit{vm.c}
+
+	\item EVALUATE respects the count parameter, and also passes
+	exceptional return conditions back out to the calling instance
+	of ficlExec.
+
+	\item VM\_QUIT clears locals dictionary in ficlExec()
+
+	\item Added Michael Gauland's ficlLongMul and ficlLongDiv and
+	support routines to \textit{math64.c} and \textit{math64.h}.
+	These routines are coded in C, and are compiled only if
+	PORTABLE\_LONGMULDIV == 1 (default is 0).
+
+	\item Added definition of ficlRealloc to \textit{sysdep.c}
+	(needed for memory allocation wordset). If your target OS
+	supports realloc(), you'll probably want to redefine ficlRealloc
+	in those terms. The default version does ficlFree followed by
+	ficlMalloc.
+
+	\item \textit{testmain.c}: Changed gets() in testmain to fgets()
+	to appease the security gods.
+
+	\item \textit{testmain.c}: msec renamed to ms in line with the
+	ANS
+
+	\item \textit{softcore.pl} now removes comments \& spaces at the
+	start and end of lines. As a result: sizeof (softWords) == 7663
+	bytes (used to be 20000)  and consumes 11384 bytes of dictionary
+	when compiled
+
+	\item Deleted license paste-o in \textit{readme.txt} (oops).
+\end{itemize}
+
+
+\section*{Version 2.02}
+New words:
+\begin{itemize}[noitemsep]
+	\item marker        (CORE EXT)
+	\item forget       (TOOLS EXT)
+	\item forget-wid        (FICL)
+	\item ficl-wordlist     (FICL)
+	\item ficl-vocabulary   (FICL)
+	\item hide              (FICL)
+	\item hidden            (FICL)
+	\item Johns Hopkins local variable syntax (as best I can determine)
+\end{itemize}
+
+
+Bugs Fixed
+\begin{itemize}[noitemsep]
+	\item forget now adjusts the dictionary pointer to remove the
+	name of the word being forgotten (name chars come before the
+	word header in FICL's dictionary)
+
+	\item :noname used to push the colon control marker and its
+	execution token in the wrong order
+
+	\item source-id now behaves correctly when loading a file.
+
+	\item refill returns zero at EOF (Win32 load). Win32 load
+	command continues to be misnamed. Really ought to be called
+	included, but does not exactly conform to that spec either
+	(because included expects a string signature on the stack,
+	while FICL's load expects a filename upon invocation). The
+	"real" LOAD is a BLOCK word.
+\end{itemize}
+
+Enhancements
+\begin{itemize}[noitemsep]
+	\item dictUnsmudge no longer links anonymous definitions into
+	the dictionary
+
+	\item oop is no longer the default compile wordlist at startup,
+	nor is it in the search order. Execute also oop definitions to
+	use FICL OOP.
+
+	\item Revised \textit{oo.fr} extensively to make more use of
+	early binding
+
+	\item Added meta - a constant that pushes the address of
+	metaclass. See \textit{oo.fr} for examples of use.
+
+	\item Added classes: c-ptr  c-bytePtr  c-2bytePtr  c-cellPtr
+	These classes model pointers to non-object data, but each knows
+	the size of its referent.
+\end{itemize}
+
+
+\section*{Version 2.01}
+\begin{itemize}[noitemsep]
+	\item Bug fix: (local) used to leave a value on the stack
+	between the first and last locals declared. This value is now
+	stored in a static.
+
+	\item Added new local syntax with parameter re-ordering. See
+	description below. (No longer compiled in version 2.02, in favor
+	of the Johns Hopkins syntax)
+\end{itemize}
+
+
+\section*{Version 2.0}
+\begin{itemize}[noitemsep]
+	\item New ANS Forth words: TOOLS and part of TOOLS EXT, SEARCH
+	and SEARCH EXT, LOCALS and LOCALS EXT word sets, additional
+	words from CORE EXT, DOUBLE, and STRING. (See the function
+	ficlCompileCore in \textit{words.c} for an alphabetical list by
+	word set).
+
+	\item Simple USER variable support - a user variable is a
+	virtual machine instance variable. User variables behave as
+	VARIABLEs in all other respects.
+
+	\item Object oriented syntax extensions (see below)
+
+	\item Optional stack underflow and overflow checking in many
+	CORE words (enabled when FICL\_ROBUST \textgreater = 2)
+
+	\item Various bug fixes
+\end{itemize}

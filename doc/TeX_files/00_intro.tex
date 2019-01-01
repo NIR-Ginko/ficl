@@ -1,0 +1,122 @@
+%!TEX encoding = UTF-8 Unicode
+\chapter{Intro}
+\section{What is Ficl}
+Ficl is a programming language interpreter designed to be embedded
+into other systems as a command, macro and development
+prototyping language.
+
+Ficl is an acronym for "Forth Inspired Command Language"
+\section{Ficl features}
+\subsection{Ficl is \textbf{easy to port}.}
+\begin{itemize}[noitemsep]
+	\item It typically takes under 2 hours to port to a new platform.
+	\item Ficl is written in strict ANSI C.
+	\item Ficl can run natively on 32- and 64-bit processors.
+\end{itemize}
+\subsection{Ficl has a \textbf{small memory footprint}.}
+A fully featured Win32 console version takes less than 100K of
+memory, and a minimal version is less than half of that.
+\subsection{Ficl is \textbf{easy to integrate} into your program.}
+Where most Forths view themselves as the center of the system
+and expect the rest of the system to be coded in Forth, Ficl
+acts as a component of your program.  It is easy to export code
+written in C or ASM to Ficl (in the style of TCL), or to invoke Ficl
+code from a compiled module.
+\subsection{Ficl is \textbf{fast}.}
+Thanks to its "switch-threaded" virtual machine design, Ficl 4 is faster
+than ever—about 3x the speed of Ficl 3. Ficl also features blindingly
+fast "just in time" compiling, removing the "compile" step from the
+usual compile-debug-edit iterative debugging cycle.
+\subsection{Ficl is a \textbf{complete and powerful programming language}.}
+Ficl is an implementation of the FORTH language, a language providing a
+wide range of standard programming language features:
+\begin{itemize}[noitemsep]
+	\item Integer and floating-point numbers, with a rich set of operators.
+	\item Arrays.
+	\item File I/O.
+	\item Flow control (if/then/else and many looping structures).
+	\item Subroutines with named arguments.
+	\item Language extensibility.
+	\item Powerful code pre-processing features.
+\end{itemize}
+\subsection{Ficl is \textbf{standards-compliant}.}
+Ficl conforms to the 1994 ANSI Standard for FORTH (DPANS94). See ANS
+Required Information for more detail.
+\subsection{Ficl is \textbf{extensible}.}
+Ficl is extensible both at compile-time and at run-time. You can add new
+script functions, new native functions, even new control structures.
+\subsection{Ficl adds \textbf{object oriented programming features}.}
+Ficl's flexible OOP library can be used to wrap data structures or
+classes of the host system without altering them. (And remember how we
+said Ficl was extensible? Ficl's object-oriented programming extensions
+are written in Ficl.)
+\subsection{Ficl is \textbf{interactive}.}
+Ficl can be used interactively, like most other FORTHs, Python, and
+Smalltalk. You can inspect data, run commands, or even define new
+commands, all on a running Ficl VM. Ficl also has a built-in script
+debugger that allows you to step through Ficl code as it is executed.
+\subsection{Ficl is \textbf{ROMable}.}
+Ficl is designed to work in RAM based and ROM code / RAM data environments.
+\subsection{Ficl is \textbf{safe for multithreaded programs}.}
+Ficl is reentrant and thread-safe. After initialization, it does not
+write to any global data.
+\subsection{Ficl is \textbf{open-source and free}.}
+The Ficl licence is a BSD-style license, requiring only that you
+document that you are using Ficl. There are no licensing costs for using
+Ficl.
+\section{What's New In Ficl 4.0}
+Ficl 4.0 is a major change for Ficl. Ficl 4.0 is smaller, faster, more
+powerful, and easier to use than ever before. (Or your money back!)
+
+Ficl 4.0 features a major engine rewrite. Previous versions of Ficl
+stored compiled words as an array of pointers to data structure; Ficl
+4.0 adds "instructions", and changes over to mostly using a
+"switch-threaded" model. The result? Ficl 4.0 is approximately three
+times as fast as Ficl 3.03.
+
+Ficl 4.0 also adds the ability to store the "softcore" words as LZ77
+compressed text. Decompression is so quick as to be nearly unmeasurable
+(0.00384 seconds on a 750MHz AMD Duron-based machine). And even with the
+runtime decompressor, the resulting Ficl executable is over 13k smaller!
+
+Another new feature: Ficl 4.0 can take advantage of native support for
+double-word math. If your platform supports it, set the preprocessor
+symbol FICL\_HAVE\_NATIVE\_2INTEGER to 1, and create typedefs for
+ficl2Integer and ficl2Unsigned.
+
+Ficl 4.0 also features a retooled API, and a redesigned directory tree.
+The API is now far more consistent. But for those of you who are
+upgrading from Ficl 3.03 or before, you can enable API backwards
+compatibility by turning on the compile-time flag FICL\_WANT\_COMPATIBILITY.
+
+Ficl 4.0 also extends support every kind of local and global value
+imaginable. Every values can individually be local or global, single-cell
+or double-cell, and integer or floating-point. And TO always does the
+right thing.
+
+If you're using Ficl under Windows, you'll be happy to know that there's
+a brand-new build process. The Ficl build process now builds Ficl as
+\begin{itemize}[noitemsep]
+	\item a static library (.LIB),
+	\item a dynamic library (.DLL, with a .LIB import library), and
+	\item a standalone executable (.EXE).
+\end{itemize}
+Furthermore, each of these targets can be built in Debug or Release,
+Singlethreaded or Multithreaded, and optionally using the DLL version
+of the C runtime library for Multithreaded builds. (And, plus, the
+/objects/common nonsense is gone!)
+
+Finally, Ficl 4.0 adds a contrib directory, a repository for
+user-contributed code that isn't part of the standard FICL release. The
+only package there right now is XClasses, a Python-based IDL that
+generates the definition files for C++-based classes, the equivalent
+FICL classes, and code to allow the FICL classes to call the C++ methods.
+Using XClasses you can write your class once, and use it immediately
+from both C++ and FICL.
+
+\section{Getting FICL}
+You can download FICL from the FICL download page at Sourceforge.
+
+\section{Building FICL}
+\subsection{Building using CMake}
+\subsection{Building using Makefile}

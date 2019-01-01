@@ -1,0 +1,503 @@
+%!TEX encoding = UTF-8 Unicode
+\chapter{ANS Required Information}
+The following documentation is necessary to for Ficl to comply with the
+DPANS94 standard. It describes what areas of the standard Ficl
+implements, what areas it does not, and how it behaves in areas
+undefined by the standard.
+
+
+\section{ANS Forth System}
+\begin{itemize}[noitemsep]
+	\item Providing names from the Core Extensions word set
+	\item Providing names from the Double-Number word set
+	\item Providing the Exception word set
+	\item Providing the Exception Extensions word set
+	\item Providing the File-Access word set
+	\item Providing the File-Access Extensions word set
+	\item Providing names from the Floating-Point word set
+	\item Providing the Locals word set
+	\item Providing the Locals Extensions word set
+	\item Providing the Memory Allocation word set
+	\item Providing the Programming-Tools word set
+	\item Providing names from the Programming-Tools Extensions word set
+	\item Providing the Search-Order word set
+	\item Providing the Search-Order Extensions word set
+	\item Providing names from the String Extensions word set
+\end{itemize}
+
+
+\section{Implementation-defined Options}
+The implementation-defined items in the following list represent
+characteristics and choices left to the discretion of the implementor,
+provided that the requirements of the Standard are met. A system shall
+document the values for, or behaviors of, each item.
+\begin{itemize}[noitemsep]
+	\item \textbf{aligned address requirements (3.1.3.3
+		Addresses)}\newline
+	System dependent. You can change the default address alignment
+	by defining FICL\_ALIGN on your compiler's command line, or in
+	platform.h. The default value is set to 2 in ficl.h. This causes
+	dictionary entries and ALIGN and ALIGNED to align on 4 byte
+	boundaries. To align on 2\textsuperscript{n} byte boundaries,
+	set FICL\_ALIGN to \textbf{n}.
+
+	\item \textbf{behavior of 6.1.1320 EMIT for non-graphic
+		characters}\newline
+	Depends on target system, C runtime library, and your
+	implementation of ficlTextOut().
+
+	\item \textbf{character editing of 6.1.0695 ACCEPT and 6.2.1390
+		EXPECT}\newline
+	None implemented in the versions supplied in primitives.c.
+	Because ficlEvaluate() is supplied a text buffer externally,
+	it's up to your system to define how that buffer will be obtained.
+
+	\item \textbf{character set (3.1.2 Character types, 6.1.1320
+		EMIT, 6.1.1750 KEY)}\newline
+	Depends on target system and implementation of ficlTextOut().
+
+	\item \textbf{character-aligned address requirements (3.1.3.3
+		Addresses)}\newline
+	Ficl characters are one byte each. There are no alignment
+	requirements.
+
+	\item \textbf{character-set-extensions matching characteristics
+		(3.4.2 Finding definition names)}\newline
+	No special processing is performed on characters beyond
+	case-folding. Therefore, extended characters will not match
+	their unaccented counterparts.
+
+	\item \textbf{conditions under which control characters match a
+		space delimiter (3.4.1.1 Delimiters)}\newline
+	Ficl uses the Standard C function isspace() to distinguish
+	space characters.
+
+	\item \textbf{format of the control-flow stack (3.2.3.2
+		Control-flow stack)}\newline
+	Uses the data stack.
+
+	\item \textbf{conversion of digits larger than thirty-five
+		(3.2.1.2 Digit conversion)}\newline
+	The maximum supported value of BASE is 36. Ficl will fail via
+	assertion in function ltoa() of utility.c if the base is found
+	to be larger than 36 or smaller than 2. There will be no effect
+	if NDEBUG is defined, however, other than possibly unexpected
+	behavior.
+
+	\item \textbf{display after input terminates in 6.1.0695 ACCEPT
+		and 6.2.1390 EXPECT}\newline
+	Target system dependent.
+
+	\item \textbf{exception abort sequence (as in 6.1.0680
+		ABORT")}\newline
+	Calls ABORT to exit.
+
+	\item \textbf{input line terminator (3.2.4.1 User input
+		device)}\newline
+	Target system dependent (implementation of outer loop that
+	calls ficlEvaluate()).
+
+	\item \textbf{maximum size of a counted string, in characters
+		(3.1.3.4 Counted strings, 6.1.2450 WORD)}\newline
+	Counted strings are limited to 255 characters.
+
+	\item \textbf{maximum size of a parsed string (3.4.1
+		Parsing)}\newline
+	Limited by available memory and the maximum unsigned value that
+	can fit in a cell (2\textsuperscript{32}-1).
+
+	\item \textbf{maximum size of a definition name, in characters
+		(3.3.1.2 Definition names)}\newline
+	Ficl stores the first 31 characters of a definition name.
+
+	\item \textbf{maximum string length for 6.1.1345 ENVIRONMENT?,
+		in characters}\newline
+	Same as maximum definition name length.
+
+	\item \textbf{method of selecting 3.2.4.1 User input
+		device}\newline
+	None supported. This is up to the target system.
+
+	\item \textbf{method of selecting 3.2.4.2 User output
+		device}\newline
+	None supported. This is up to the target system.
+
+	\item \textbf{methods of dictionary compilation (3.3 The Forth
+		dictionary)}\newline
+	Okay, we don't know what this means. If you understand what
+	they're asking for here, please call the home office.
+
+	\item \textbf{number of bits in one address unit (3.1.3.3
+		Addresses)}\newline
+	Target system dependent, either 32 or 64 bits.
+
+	\item \textbf{number representation and arithmetic (3.2.1.1
+		Internal number representation)}\newline
+	System dependent. Ficl represents a CELL internally as a union
+	that can hold a ficlInteger32 (a signed 32 bit scalar value),
+	a ficlUnsigned32 (32 bits unsigned), and an untyped pointer. No
+	specific byte ordering is assumed.
+
+	\item \textbf{ranges for n, +n, u, d, +d, and ud (3.1.3
+		Single-cell types, 3.1.4 Cell-pair types)}\newline
+	System dependent. Assuming a 32 bit implementation, range for
+	signed single-cell values is [-2\textsuperscript{31},
+	2\textsuperscript{31}-1]. Range for unsigned single cell values
+	is [0, 2\textsuperscript{32}-1]. Range for signed double-cell
+	values is [-2\textsuperscript{63}, 2\textsuperscript{63}-1].
+	Range for unsigned double cell values is [0,
+	2\textsuperscript{64}-1].
+
+	\item \textbf{read-only data-space regions (3.3.3 Data
+		space)}\newline
+	None.
+
+	\item \textbf{size of buffer at 6.1.2450 WORD (3.3.3.6 Other
+		transient regions)}\newline
+	Default is 255. Depends on the setting of FICL\_PAD\_SIZE in
+	ficl.h.
+
+	\item \textbf{size of one cell in address units (3.1.3
+		Single-cell types)}\newline
+	System dependent, generally 4.
+
+	\item \textbf{size of one character in address units (3.1.2
+		Character types)}\newline
+	System dependent, generally 1.
+
+	\item \textbf{size of the keyboard terminal input buffer
+		(3.3.3.5 Input buffers)}\newline
+	This buffer is supplied by the host program. FICL imposes no
+	practical limit.
+
+	\item \textbf{size of the pictured numeric output string buffer
+		(3.3.3.6 Other transient regions)}\newline
+	Default is 255. Depends on the setting of FICL\_PAD\_SIZE in
+	ficl.h.
+
+	\item \textbf{size of the scratch area whose address is returned
+		by 6.2.2000 PAD (3.3.3.6 Other transient regions)}\newline
+	Default is 255. Depends on the setting of FICL\_PAD\_SIZE in
+	ficl.h.
+
+	\item \textbf{system case-sensitivity characteristics (3.4.2
+		Finding definition names)}\newline
+	The FICL dictionary is not case-sensitive.
+
+	\item \textbf{system prompt (3.4 The Forth text interpreter,
+		6.1.2050 QUIT)}\newline
+	ok\textgreater
+
+	\item \textbf{type of division rounding (3.2.2.1 Integer
+		division, 6.1.0100 */, 6.1.0110 */MOD, 6.1.0230 /,
+		6.1.0240 /MOD, 6.1.1890 MOD)}\newline
+	Symmetric.
+
+	\item \textbf{values of 6.1.2250 STATE when true}\newline
+	1.
+
+	\item \textbf{values returned after arithmetic overflow (3.2.2.2
+		Other integer operations)}\newline
+	System dependent. FICL makes no special checks for overflow.
+
+	\item \textbf{whether the current definition can be found after
+		6.1.1250 DOES\textgreater (6.1.0450 :)}\newline
+	No. Definitions are unsmudged after ; only, and only then if no
+	control structure matching problems have been detected.
+\end{itemize}
+
+
+\section{Ambiguous Conditions}
+\begin{itemize}[noitemsep]
+	\item \textbf{a name is neither a valid definition name nor a
+		valid number during text interpretation (3.4 The Forth
+		text interpreter)}\newline
+	FICL calls ABORT then prints the name followed by not found.
+
+	\item \textbf{a definition name exceeded the maximum length
+		allowed (3.3.1.2 Definition names)}\newline
+	FICL stores the first 31 characters of the definition name, and
+	uses all characters of the name in computing its hash code. The
+	actual length of the name, up to 255 characters, is stored in
+	the definition's length field.
+
+	\item \textbf{addressing a region not listed in 3.3.3 Data
+		Space}\newline
+	No problem: all addresses in FICL are absolute. You can reach
+	any 32 bit address in FICL's address space.
+
+	\item \textbf{argument type incompatible with specified input
+		parameter, e.g., passing a flag to a word expecting an
+		n (3.1 Data types)}\newline
+	FICL makes no check for argument type compatibility. Effects of
+	a mismatch vary widely depending on the specific problem and
+	operands.
+
+	\item \textbf{attempting to obtain the execution token, (e.g.,
+		with 6.1.0070 ', 6.1.1550 FIND, etc.) of a definition
+		with undefined interpretation semantics}\newline
+	FICL returns a valid token, but the result of executing that
+	token while interpreting may be undesirable.
+
+	\item \textbf{dividing by zero (6.1.0100 */, 6.1.0110 */MOD,
+		6.1.0230 /, 6.1.0240 /MOD, 6.1.1561 FM/MOD, 6.1.1890
+		MOD, 6.1.2214 SM/REM, 6.1.2370 UM/MOD, 8.6.1.1820
+		M*/)}\newline
+	Results are target procesor dependent. Generally, FICL make no
+	checks for divide-by-zero. The target processor will probably
+	throw an exception.
+
+	\item \textbf{insufficient data-stack space or return-stack
+		space (stack overflow)}\newline
+	With FICL\_ROBUST (defined in ficl.h) set to a value of 2 or
+	greater, most data, float, and return stack operations are
+	checked for underflow and overflow.
+
+	\item \textbf{insufficient space for loop-control
+		parameters}\newline
+	This is not checked, and bad things will happen.
+
+	\item \textbf{insufficient space in the dictionary}\newline
+		FICL generates an error message if the dictionary is
+		too full to create a definition header. It checks ALLOT
+		as well, but it is possible to make an unchecked
+		allocation request that will overflow the dictionary.
+
+	\item \textbf{interpreting a word with undefined interpretation
+		semantics}\newline
+	FICL protects all ANS Forth words with undefined interpretation
+	semantics from being executed while in interpret state. It is
+	possible to defeat this protection using ' (tick) and EXECUTE
+	though.
+
+	\item \textbf{modifying the contents of the input buffer or a
+		string literal (3.3.3.4 Text-literal regions, 3.3.3.5
+		Input buffers)}\newline
+	Varies depending on the nature of the buffer. The input buffer
+	is supplied by FICL's host function, and may reside in read-only
+	memory. If so, writing the input buffer can ganerate an
+	exception. String literals are stored in the dictionary, and are
+	writable.
+
+	\item \textbf{overflow of a pictured numeric output
+		string}\newline
+	In the unlikely event you are able to construct a pictured
+	numeric string of more than FICL\_PAD\_LENGTH characters, the
+	system will be corrupted unpredictably. The buffer area that
+	holds pictured numeric output is at the end of the virtual
+	machine. Whatever is mapped after the offending VM in memory
+	will be trashed, along with the heap structures that contain it.
+
+	\item \textbf{parsed string overflow}\newline
+		FICL does not copy parsed strings unless asked to.
+		Ordinarily, a string parsed from the input buffer during
+		normal interpretation is left in-place, so there is no
+		possibility of overflow. If you ask to parse a string
+		into the dictionary, as in SLITERAL, you need to have
+		enough room for the string, otherwise bad things may
+		happen. This is usually not a problem.
+
+	\item \textbf{producing a result out of range, e.g.,
+		multiplication (using *) results in a value too big to
+		be represented by a single-cell integer (6.1.0090 *,
+		6.1.0100 */, 6.1.0110 */MOD, 6.1.0570, >NUMBER, 6.1.1561
+		FM/MOD, 6.1.2214 SM/REM, 6.1.2370 UM/MOD, 6.2.0970
+		CONVERT, 8.6.1.1820 M*/)}\newline
+	Value will be truncated.
+
+	\item \textbf{reading from an empty data stack or return stack
+		(stack underflow)}\newline
+	Most stack underflows are detected and prevented if FICL\_ROBUST
+	(defined in sysdep.h) is set to 2 or greater. Otherwise, the
+	stack pointer and size are likely to be trashed.
+
+	\item \textbf{unexpected end of input buffer, resulting in an
+		attempt to use a zero-length string as a name}\newline
+	FICL returns for a new input buffer until a non-empty one is
+	supplied.
+\end{itemize}
+
+The following specific ambiguous conditions are noted in the glossary entries of the relevant words:
+\begin{itemize}[noitemsep]
+	\item \textbf{\textgreater IN greater than size of input buffer
+		(3.4.1 Parsing)}\newline
+	Memory corruption will occur — the exact behavior is
+	unpredictable because the input buffer is supplied by the host
+	program's outer loop.
+
+	\item \textbf{6.1.2120 RECURSE appears after 6.1.1250
+		DOES\textgreater}\newline
+	It finds the address of the definition before DOES\textgreater
+
+	\item \textbf{argument input source different than current input
+		source for 6.2.2148 RESTORE-INPUT}\newline
+	Not implemented.
+
+	\item \textbf{data space containing definitions is de-allocated
+		(3.3.3.2 Contiguous regions)}\newline
+	This is okay until the cells are overwritten with something
+	else. The dictionary maintains a hash table, and the table must
+	be updated in order to de-allocate words without corruption.
+
+	\item \textbf{data space read/write with incorrect alignment
+		(3.3.3.1 Address alignment)}\newline
+	Target processor dependent. Consequences include: none (Intel),
+	address error exception (68K).
+
+	\item \textbf{data-space pointer not properly aligned
+		(6.1.0150 ,, 6.1.0860 C,)}\newline
+	Target processor dependent. Consequences include: none (Intel),
+	address error exception (68K).
+
+	\item \textbf{less than u+2 stack items (6.2.2030 PICK,
+		6.2.2150 ROLL)}\newline
+	If FICL\_ROBUST is two or larger, FICL will detect a stack
+	underflow, report it, and execute ABORT to exit execution.
+	Otherwise the error will not be detected, and memory corruption
+	will occur.
+
+	\item \textbf{loop-control parameters not available
+		(6.1.0140 +LOOP, 6.1.1680 I, 6.1.1730 J, 6.1.1760 LEAVE,
+		6.1.1800 LOOP, 6.1.2380 UNLOOP)}\newline 
+	Loop initiation words are responsible for checking the stack
+	and guaranteeing that the control parameters are pushed. Any
+	underflows will be detected early if FICL\_ROBUST is set to 2 or
+	greater. Note however that FICL only checks for return stack
+	underflows at the end of each line of text.
+
+	\item \textbf{most recent definition does not have a name
+		(6.1.1710 IMMEDIATE)}\newline
+	No problem.
+
+	\item \textbf{name not defined by 6.2.2405 VALUE used by
+		6.2.2295 TO}\newline
+	FICL's version of TO works correctly with words defined with:
+	\begin{itemize}[noitemsep]
+		\item VALUE
+		\item 2VALUE
+		\item FVALUE
+		\item F2VALUE
+		\item CONSTANT
+		\item FCONSTANT
+		\item 2CONSTANT
+		\item F2CONSTANT
+		\item VARIABLE
+		\item 2VARIABLE
+	\end{itemize}
+	as well as with all "local" variables.
+
+	\item \textbf{name not found (6.1.0070 ', 6.1.2033 POSTPONE,
+		6.1.2510 ['], 6.2.2530 [COMPILE])}\newline
+	FICL prints an error message and executes ABORT
+
+	\item \textbf{parameters are not of the same type (6.1.1240 DO,
+		6.2.0620 ?DO, 6.2.2440 WITHIN)}\newline
+	Not detected. Results vary depending on the specific problem.
+
+	\item \textbf{6.1.2033 POSTPONE or 6.2.2530 [COMPILE] applied to
+		6.2.2295 TO}\newline
+	The word is postponed correctly.
+
+	\item \textbf{string longer than a counted string returned by
+		6.1.2450 WORD}\newline
+	FICL stores the first FICL\_COUNTED\_STRING\_MAX - 1 characters
+	in the destination buffer. (The extra character is the trailing
+	space required by the standard. Yuck.)
+
+	\item \textbf{u greater than or equal to the number of bits in a
+		cell (6.1.1805 LSHIFT, 6.1.2162 RSHIFT)}\newline
+	Depends on target processor and C runtime library
+	implementations of the \textless\textless and
+	\textgreater\textgreater operators on unsigned values. For i386,
+	the processor appears to shift modulo the number of bits in a cell.
+
+	\item \textbf{word not defined via 6.1.1000 CREATE (6.1.0550
+		\textgreater BODY, 6.1.1250 DOES\textgreater ) and words
+		improperly used outside 6.1.0490 \textless \# and
+		6.1.0040 \# \textgreater (6.1.0030 \# , 6.1.0050 \# S,
+		6.1.1670 HOLD, 6.1.2210 SIGN)}\newline
+	Undefined. CREATE reserves a field in words it builds for
+	DOES\textgreater  to fill in. If you use DOES\textgreater  on a
+	word not made by CREATE it will overwrite the first cell of its
+	parameter area. That's probably not what you want. Likewise,
+	pictured numeric words assume that there is a string under
+	construction in the VM's scratch buffer. If that's not the
+	case, results may be unpleasant.
+\end{itemize}
+
+
+\section{Locals Implementation-Defined Options}
+\begin{itemize}[noitemsep]
+	\item \textbf{maximum number of locals in a definition (13.3.3
+		Processing locals, 13.6.2.1795 LOCALS|)}\newline
+	Default is 64—unused locals are cheap. Change by redefining
+	FICL\_MAX\_LOCALS (defined in ficl.h).
+\end{itemize}
+
+
+\section{Locals Ambiguous conditions}
+\begin{itemize}[noitemsep]
+	\item \textbf{executing a named local while in interpretation
+		state (13.6.1.0086 (LOCAL))}\newline
+	Locals can be found in interpretation state while in the
+	context of a definition under construction. Under these
+	circumstances, locals behave correctly. Locals are not visible
+	at all outside the scope of a definition.
+
+	\item \textbf{name not defined by VALUE or LOCAL (13.6.1.2295
+		TO)}\newline
+	See the CORE ambiguous conditions, above (no change).
+\end{itemize}
+
+
+\section{Programming Tools Implementation-Defined Options}
+\begin{itemize}[noitemsep]
+	\item \textbf{source and format of display by 15.6.1.2194
+		SEE}\newline
+	SEE de-compiles definitions from the dictionary. FICL words are
+	stored as a combination of things:
+	\begin{itemize}[noitemsep]
+		\item bytecodes (identified as "instructions"),
+		\item addresses of native FICL functions, and
+		\item arguments to both of the above.
+	\end{itemize}
+	Colon definitions are decompiled. Branching instructions
+	indicate their destination, but target labels are not
+	reconstructed. Literals and string literals are so noted, and
+	their contents displayed.
+\end{itemize}
+
+
+\section{Search Order Implementation-Defined Options}
+\begin{itemize}[noitemsep]
+	\item \textbf{maximum number of word lists in the search order
+		(16.3.3 Finding definition names, 16.6.1.2197
+		SET-ORDER)}\newline
+	Defaults to 16. Can be changed by redefining
+	FICL\_MAX\_WORDLISTS (declared in ficl.h).
+
+	\item \textbf{minimum search order (16.6.1.2197 SET-ORDER,
+		16.6.2.1965 ONLY)}\newline
+	Equivalent to FORTH-WORDLIST 1 SET-ORDER
+\end{itemize}
+
+
+\section{Search Order Ambiguous Conditions}
+\begin{itemize}[noitemsep]
+	\item \textbf{changing the compilation word list (16.3.3
+		Finding definition names)}\newline
+	FICL stores a link to the current definition independently of
+	the compile wordlist while it is being defined, and links it
+	into the compile wordlist only after the definition completes
+	successfully. Changing the compile wordlist mid-definition will
+	cause the definition to link into the new compile wordlist.
+
+	\item \textbf{search order empty (16.6.2.2037 PREVIOUS)}\newline
+	FICL prints an error message if the search order underflows, and
+	resets the order to its default state.
+
+	\item \textbf{too many word lists in search order (16.6.2.0715
+		ALSO)}\newline
+	FICL prints an error message if the search order overflows, and
+	resets the order to its default state.
+\end{itemize}

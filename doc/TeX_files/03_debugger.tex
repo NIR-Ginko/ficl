@@ -1,0 +1,107 @@
+%!TEX encoding = UTF-8 Unicode
+\chapter{Debugger}
+Ficl includes a simple step debugger for colon definitions and DOES\textgreater words.
+\section{Using The Ficl Debugger}
+To debug a word, set up the stack with any parameters the word requires, then execute:
+
+\textbf{DEBUG your-word-name-here}
+
+If the word is unnamed, or all you have is an execution token, you can
+instead use DEBUG-XT
+
+The debugger invokes SEE on the word which prints a crude source
+listing. It then stops at the first instruction of the definition.
+There are six (case insensitive) commands you can use from here onwards:
+\begin{itemize}[noitemsep]
+	\item \textbf{I} (step \textbf{I}n)\newline
+	If the next instruction is a colon defintion or does\textgreater
+	word, steps into that word's code. If the word is a primitive,
+	simply executes the word.
+
+	\item \textbf{O} (step \textbf{O}ver)\newline
+	Executes the next instruction in its entirety.
+
+	\item \textbf{G} (\textbf{G}o)\newline
+	Run the word to completion and exit the debugger.
+
+	\item \textbf{L} (\textbf{L}ist)\newline
+	Lists the source code of the word presently being stepped.
+
+	\item \textbf{Q} (\textbf{Q}uit)\newline
+	Abort the word and exit the debugger, clearing the stacks.
+
+	\item \textbf{X} (e\textbf{X}ecute)\newline
+	Interpret the remainder of the line as FICL words. Any change
+	they make to the stacks will be preserved when the debugged
+	word continues execution. Any errors will abort the debug
+	session and reset the VM. Usage example:
+	\begin{lstlisting}[frame=single]
+X DROP 3 \ change top argument on stack to 3
+	\end{lstlisting}
+\end{itemize}
+Any other character will print a list of available debugger commands.
+
+
+\section{The ON-STEP Event}
+If there is a defined word named ON-STEP when the debugger starts, that
+word will be executed before every step. Its intended use is to display
+the stacks and any other VM state you find interesting. The default
+ON-STEP is:
+\begin{lstlisting}[frame=single]
+: ON-STEP  ." S: " .S-SIMPLE CR ;
+\end{lstlisting}
+If you redefine ON-STEP, we recommend you ensure the word has no
+side-effects (for instance, adding or removing values from any stack).
+
+
+\section{Other Useful Words For Debugging And ON-STEP}
+\begin{itemize}
+	\item .ENV ( -- )\newline
+	Prints all environment settings non-destructively.
+
+	\item .S ( -- )\newline
+	Prints the parameter stack non-destructively in a verbose
+	format.
+
+	\item .S-SIMPLE ( -- )\newline
+	Prints the parameter stack non-destructively in a simple
+	single-line format.
+
+	\item F.S ( -- )\newline
+	Prints the float stack non-destructively (only available if
+	FICL\_WANT\_FLOAT is enabled).
+
+	\item R.S ( -- )\newline
+	Prints a represention of the state of the return stack
+	non-destructively.
+\end{itemize}
+
+
+\section{Debugger Internals}
+The debugger words are mostly located in source file \textit{tools.c}.
+There are supporting words (\textit{DEBUG} and \textit{ON-STEP}) in
+\textit{softcore/softcore.fr} as well. There are two main words that
+make the debugger go: \textit{debug-xt} and \textit{step-break}.
+\textit{debug-xt} takes the execution token of a word to debug (as
+returned by \textit{'} for example), checks to see if it is debuggable
+(not a primitive), sets a breakpoint at its first instruction, and runs
+\textit{SEE} on it. To set a breakpoint, \textit{debug-xt} replaces the
+instruction at the breakpoint with the execution token of
+\textit{step-break}, and stores the original instruction and its address
+in a static breakpoint record. To clear the breakpoint,
+\textit{step-break} simply replaces the original instruction and adjusts
+the target virtual machine's instruction pointer to run it.
+
+\textit{step-break} is responsible for processing debugger commands and
+setting breakpoints at subsequent instructions.
+
+
+\section{Future Enhancements}
+\begin{itemize}[noitemsep]
+	\item The debugger needs to exit automatically when it
+	encounters the end of the word it was asked to debug. (Perhaps
+	this could be a special kind of breakpoint?)
+
+	\item Add user-set breakpoints.
+	\item Add "step out" command.
+\end{itemize}

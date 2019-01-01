@@ -1,3 +1,11 @@
+# Documentation
+*.html
+*.gz
+*.ico
+*.log
+*.aux
+*.toc
+
 # Prerequisites
 *.d
 
