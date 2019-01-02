@@ -1,5 +1,13 @@
-# FICL 4.2.0
+# FICL
+
+[![Build Status](https://travis-ci.com/NIR-Ginko/ficl.png)](https://github.com/NIR-Ginko/ficl)
+
+
+Targeting 4.2.0
+
+
 February 2018
+
 
 ## Overview
 
