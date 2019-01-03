@@ -1,6 +1,7 @@
 # FICL
 
 [![Build Status](https://travis-ci.com/NIR-Ginko/ficl.png)](https://github.com/NIR-Ginko/ficl)
+[![Build Status](https://api.cirrus-ci.com/github/NIR-Ginko/ficl.svg)](https://cirrus-ci.com/github/NIR-Ginko/ficl)
 
 
 Targeting 4.2.0
