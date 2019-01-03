@@ -2,12 +2,14 @@
 
 [![Build Status](https://travis-ci.com/NIR-Ginko/ficl.png)](https://github.com/NIR-Ginko/ficl)
 [![Build Status](https://api.cirrus-ci.com/github/NIR-Ginko/ficl.svg)](https://cirrus-ci.com/github/NIR-Ginko/ficl)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/NIR-Ginko/ficl.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/NIR-Ginko/ficl/alerts/)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/NIR-Ginko/ficl.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/NIR-Ginko/ficl/context:cpp)
 
 
 Targeting 4.2.0
 
 
-February 2018
+January 2019
 
 
 ## Overview
@@ -23,10 +25,9 @@ For release notes, please see "doc/releases.html".
 ## Installation
 
 Ficl builds out-of-the-box on the following platforms:
-	* NetBSD, FreeBSD: use "Makefile".
-	* Linux: use "Makefile.linux", but it should work with
-	  "Makefile" as well.
-	* Win32: use "ficl.dsw" / "ficl.dsp".
+	* NetBSD, FreeBSD: use CMake.
+	* Linux: use CMake.
+	* Win32: use CMake.
 To port to other platforms, we suggest you start with the generic
 "Makefile" and the "unix.c" / "unix.h" platform-specific implementation
 files.  (And please--feel free to submit your portability changes!)
