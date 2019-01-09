@@ -94,3 +94,5 @@ set_property(TARGET ficl PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 enable_testing()
 
+install(TARGETS ficl
+	RUNTIME DESTINATION bin)
